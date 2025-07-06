@@ -1,7 +1,7 @@
-import 'package:smartnotes/db_helper.dart';
+//import 'package:smartnotes/db_helper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:smartnotes/notes_page.dart';
+//import 'package:smartnotes/notes_page.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;

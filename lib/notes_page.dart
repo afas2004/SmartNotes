@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 import 'db_helper.dart';
 
 class NotesPage extends StatefulWidget {
+  static const String routeName = '/notes';
+
+  const NotesPage({super.key});
+
+
   @override
   State<NotesPage> createState() => _NotesPageState();
 }
 
 class _NotesPageState extends State<NotesPage> {
   List<Map<String, dynamic>> _notes = [];
-
+  
   @override
   void initState() {
     super.initState();

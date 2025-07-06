@@ -98,7 +98,19 @@ class _NotesPageState extends State<NotesPage> {
 Widget build(BuildContext context) {
   debugPrint('Building NotesPage');
   return Scaffold(
-    appBar: AppBar(title: Text('Notes')),
+    appBar: AppBar(
+        title: const Text('Smart Notes'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+            onPressed: () {
+              Navigator.pushNamed(context, '/settings');
+            },
+          ),
+        ],
+      ),
+
     body: _notes.isEmpty
         ? Center(child: Text('No notes found.'))
         : ListView.builder(

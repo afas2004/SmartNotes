@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:smartnotes/notes_page.dart';
 import 'package:smartnotes/services/auth_service.dart';
 import 'register_page.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -96,7 +97,7 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: () async {
                         await _login();
                         if (FirebaseAuth.instance.currentUser != null && mounted) {
-                        Navigator.of(context).pushReplacementNamed('/home');
+                        Navigator.of(context).pushReplacementNamed('/notes');
                         }
                       },
                       child: const Text('Sign In'),
@@ -112,7 +113,7 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: () async {
                         await _loginWithGoogle();
                         if (FirebaseAuth.instance.currentUser != null && mounted) {
-                        Navigator.of(context).pushReplacementNamed('/home');
+                        Navigator.of(context).pushReplacementNamed('/notes');
                         }
                       },
                       style: ElevatedButton.styleFrom(

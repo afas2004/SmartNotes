@@ -1,7 +1,22 @@
 import 'package:flutter/material.dart';
+import 'db_helper.dart';
 
 class NotebookPage extends StatelessWidget {
   final List<String> notebooks = ['CSC510', 'Work', 'ICT450'];
+
+  void _addSampleNote() async {
+    await DBHelper().insertNote({
+      'title': 'Sample Note',
+      'content': 'This is a sample note.',
+      'created_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  void _showNotes(BuildContext context) async {
+    final notes = await DBHelper().getNotes();
+    print(notes); // Replace with your UI logic
+  }
+
 
   @override
   Widget build(BuildContext context) {

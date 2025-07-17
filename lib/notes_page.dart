@@ -17,7 +17,6 @@ class _NotesPageState extends State<NotesPage> {
   @override
   void initState() {
     super.initState();
-    _addNote();
     _loadNotes();
   }
 
@@ -129,8 +128,10 @@ Widget build(BuildContext context) {
             },
           ),
     floatingActionButton: FloatingActionButton(
-      onPressed: _addNote,
-      child: Icon(Icons.add),
+      onPressed: () {
+    Navigator.pushNamed(context, '/new_note').then((_) => _loadNotes());
+  },
+  child: const Icon(Icons.add),
     ),
   );
 }

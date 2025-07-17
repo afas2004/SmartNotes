@@ -12,9 +12,14 @@ class _NewNotePageState extends State<NewNotePage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
 
+  // Senarai pilihan folder
+  final List<String> _folderOptions = ['Umum', 'Peribadi', 'Kerja', 'Universiti'];
+  String? _selectedFolder;
+
   Future<void> _saveNote() async {
     final title = _titleController.text.trim();
     final content = _contentController.text.trim();
+    final folder = _selectedFolder ?? 'Umum'; // default jika tiada dipilih
 
     if (title.isEmpty && content.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -28,6 +33,7 @@ class _NewNotePageState extends State<NewNotePage> {
     await DBHelper().insertNote({
       'title': title.isEmpty ? 'Tiada Tajuk' : title,
       'content': content,
+      'folder': folder,
       'created_at': now,
       'updated_at': now,
     });
@@ -45,6 +51,27 @@ class _NewNotePageState extends State<NewNotePage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            // Dropdown folder
+            DropdownButtonFormField<String>(
+              value: _selectedFolder,
+              decoration: const InputDecoration(
+                labelText: 'Folder',
+                border: OutlineInputBorder(),
+              ),
+              items: _folderOptions.map((folder) {
+                return DropdownMenuItem(
+                  value: folder,
+                  child: Text(folder),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedFolder = value;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            // Input tajuk
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(
@@ -53,6 +80,7 @@ class _NewNotePageState extends State<NewNotePage> {
               ),
             ),
             const SizedBox(height: 16),
+            // Input kandungan nota
             Expanded(
               child: TextField(
                 controller: _contentController,
@@ -65,6 +93,7 @@ class _NewNotePageState extends State<NewNotePage> {
               ),
             ),
             const SizedBox(height: 16),
+            // Butang simpan
             ElevatedButton.icon(
               onPressed: _saveNote,
               icon: const Icon(Icons.save),

@@ -68,7 +68,7 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
     _loadTasksForSelectedDay(); // Reload tasks for the newly selected day
 
     // Show the add task dialog immediately after selecting a day
-    await _showAddTaskDialog(context);
+     _showAddTaskDialog(context);
     _loadTasksForSelectedDay(); // Reload tasks after dialog closes
   }
 
@@ -409,8 +409,8 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
                     }
                   },
                   child: Text(
-                    'Due: ${DateFormat.yMd().format(dueDate)}',
-                  ),
+                  'Due: ${DateFormat.yMd().format(dueDate ?? DateTime.now())}',
+                ),
                 );
               },
             ),

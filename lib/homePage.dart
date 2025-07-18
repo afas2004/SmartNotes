@@ -6,15 +6,15 @@ import 'package:audioplayers/audioplayers.dart'; // For Audio playback
 import 'dart:io'; // For File.fromUri (used with Image.file)
 
 // Local imports for models and services
-import 'package:my_awesome_notes_app/models/note.dart';
-import 'package:my_awesome_notes_app/models/task.dart';
-import 'package:my_awesome_notes_app/db_helper.dart'; // Your custom DB Helper
-import 'package:my_awesome_notes_app/services/auth_service.dart'; // Your Auth Service
+import 'package:smartnotes/models/note.dart';
+import 'package:smartnotes/models/task.dart';
+import 'package:smartnotes/db_helper.dart'; // Your custom DB Helper
+import 'package:smartnotes/services/auth_service.dart'; // Your Auth Service
 
 // Placeholder for other pages in BottomNavigationBar
 // You'll need to create these files if they don't exist
-import 'package:my_awesome_notes_app/screens/calendar_page.dart'; // Assuming this is your Calendar page
-import 'package:my_awesome_notes_app/screens/notes_list_page.dart'; // Create a page for all notes
+import 'package:smartnotes/calendar_page.dart'; // Assuming this is your Calendar page
+import 'package:smartnotes/notes_page.dart'; // Create a page for all notes
 
 class HomePage extends StatefulWidget {
   @override

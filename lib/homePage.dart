@@ -6,8 +6,10 @@ import 'package:smartnotes/models/note.dart';
 import 'package:smartnotes/models/task.dart';
 import 'package:smartnotes/new_note_page.dart';
 import 'package:smartnotes/providers/notes_provider.dart';
-import 'package:smartnotes/calendar_page.dart'; // Import calendar_page.dart
-import 'package:smartnotes/notebook_page.dart'; // Import notebook_page.dart
+import 'package:smartnotes/calendar_page.dart';
+import 'package:smartnotes/notebook_page.dart';
+import 'package:intl/intl.dart';
+import 'package:smartnotes/note_detail_page.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -17,7 +19,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   List<Note> recentNotes = [];
   List<Task> recentTasks = [];
-  int _selectedIndex = 0; // Set to 0 for Home
+  int _selectedIndex = 0;
   final DBHelper _dbHelper = DBHelper();
 
   @override
@@ -55,7 +57,6 @@ class _HomePageState extends State<HomePage> {
       _selectedIndex = index;
     });
     if (index == 0) {
-      // Stay on Home page, or navigate to Home if coming from another page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => HomePage()),
@@ -66,20 +67,20 @@ class _HomePageState extends State<HomePage> {
         MaterialPageRoute(builder: (context) => const CalendarTaskListPage()),
       );
     } else if (index == 2) {
-      Navigator.pushReplacementNamed(context, '/notebook'); // Assuming '/notebook' route is defined for NotesPage
+      Navigator.pushReplacementNamed(context, '/notebook');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.yellow.shade200, // Yellow background
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.yellow.shade200, // Yellow app bar
+        backgroundColor: Colors.white,
         title: const Text('Smart Notes'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.folder_outlined),
+            icon: const Icon(Icons.folder_outlined), // Changed icon back to folder
             onPressed: () {
               Navigator.push(
                 context,
@@ -116,6 +117,9 @@ class _HomePageState extends State<HomePage> {
             else
               ...recentTasks.map((task) => ListTile(
                     title: Text(task.title),
+                    subtitle: task.dueDate != null
+                        ? Text('Due: ${DateFormat.yMd().format(task.dueDate!)}')
+                        : null,
                     trailing: Icon(
                       task.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
                       color: task.isCompleted ? Colors.green : Colors.grey,
@@ -124,6 +128,26 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const NoteDetailPage(
+                title: '',
+                description: '',
+                isNewNote: true,
+              ),
+            ),
+          );
+        },
+        backgroundColor: Colors.yellow,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15.0),
+        ),
+        child: const Icon(Icons.add, color: Colors.black, size: 35),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomNavigationBar(
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(

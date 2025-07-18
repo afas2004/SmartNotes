@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:smartnotes/notes_page.dart';
 import 'package:smartnotes/services/auth_service.dart';
 import 'register_page.dart';
 import 'package:google_sign_in/google_sign_in.dart';

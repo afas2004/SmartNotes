@@ -18,6 +18,8 @@ dependencies:
   shared_preferences: ^2.5.3
   http: ^1.4.0
   intl: ^0.18.1 # Add this line to include the intl package
+  path_provider: ^2.1.1
+  audioplayers: ^5.0.0
 
 dev_dependencies:
   flutter_test:

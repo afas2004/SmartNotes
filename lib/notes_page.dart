@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'db_helper.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class NotesPage extends StatefulWidget {
   static const String routeName = '/notes';
@@ -22,7 +23,8 @@ class _NotesPageState extends State<NotesPage> {
 
   Future<void> _loadNotes() async {
     try {
-      final notes = await DBHelper().getNotes();
+      final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final notes = await DBHelper().getNotes(userId);
       setState(() {
         _notes = notes;
       });
@@ -49,7 +51,9 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   Future<void> _editNote(int id, String title, String content) async {
-    await DBHelper().updateNote(id, {
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    await DBHelper().updateNote(id, userId,{
+      'userId': userId,
       'title': title,
       'content': content,
       'updated_at': DateTime.now().toIso8601String(),
@@ -58,7 +62,8 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   Future<void> _deleteNote(int id) async {
-    await DBHelper().deleteNote(id);
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    await DBHelper().deleteNote(id, userId);
     _loadNotes();
   }
 

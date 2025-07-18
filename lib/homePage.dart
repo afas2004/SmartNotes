@@ -82,7 +82,7 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Smart Notes'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.folder_outlined), // Changed icon back to folder
+            icon: const Icon(Icons.folder_outlined),
             onPressed: () {
               Navigator.push(
                 context,
@@ -98,37 +98,48 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            const Text('Recent Notes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            if (recentNotes.isEmpty)
-              const Text('No recent notes.')
-            else
-              ...recentNotes.map((note) => ListTile(
-                    title: Text(note.title),
-                    subtitle: Text(note.content ?? ''),
-                  )),
-            const SizedBox(height: 24),
-            const Text('Recent Tasks', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            if (recentTasks.isEmpty)
-              const Text('No recent tasks.')
-            else
-              ...recentTasks.map((task) => ListTile(
-                    title: Text(task.title),
-                    subtitle: task.dueDate != null
-                        ? Text('Due: ${DateFormat.yMd().format(task.dueDate!)}')
-                        : null,
-                    trailing: Icon(
-                      task.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                      color: task.isCompleted ? Colors.green : Colors.grey,
-                    ),
-                  )),
-          ],
-        ),
+      body: Column( // Changed to Column to add the yellow line easily
+        children: [
+          // Top yellow line, similar to calendar_page.dart
+          Container(
+            height: 5,
+            color: Colors.yellow.shade200,
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ListView(
+                children: [
+                  const Text('Recent Notes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  if (recentNotes.isEmpty)
+                    const Text('No recent notes.')
+                  else
+                    ...recentNotes.map((note) => ListTile(
+                          title: Text(note.title),
+                          subtitle: Text(note.content ?? ''),
+                        )),
+                  const SizedBox(height: 24),
+                  const Text('Recent Tasks', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  if (recentTasks.isEmpty)
+                    const Text('No recent tasks.')
+                  else
+                    ...recentTasks.map((task) => ListTile(
+                          title: Text(task.title),
+                          subtitle: task.dueDate != null
+                              ? Text('Due: ${DateFormat.yMd().format(task.dueDate!)}')
+                              : null,
+                          trailing: Icon(
+                            task.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+                            color: task.isCompleted ? Colors.green : Colors.grey,
+                          ),
+                        )),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {

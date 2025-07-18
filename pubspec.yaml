@@ -17,6 +17,7 @@ dependencies:
   image_picker: ^1.1.2
   shared_preferences: ^2.5.3
   http: ^1.4.0
+  intl: ^0.18.1 # Add this line to include the intl package
 
 dev_dependencies:
   flutter_test:

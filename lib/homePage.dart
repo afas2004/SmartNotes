@@ -3,9 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:smartnotes/db_helper.dart';
 import 'package:smartnotes/models/note.dart';
 import 'package:smartnotes/models/task.dart';
-import 'package:smartnotes/notes_page.dart';
-import 'package:smartnotes/calendar_page.dart';
-import 'package:smartnotes/settings_page.dart';
 import 'package:smartnotes/new_note_page.dart'; // Create this if you don't have it
 
 class HomePage extends StatefulWidget {
@@ -45,7 +42,7 @@ class _HomePageState extends State<HomePage> {
     if (index == 1) {
       Navigator.pushReplacementNamed(context, '/calendar');
     } else if (index == 2) {
-      Navigator.pushReplacementNamed(context, '/notes');
+      Navigator.pushReplacementNamed(context, '/notebook');
     }
     // index 0 is Home, do nothing
   }

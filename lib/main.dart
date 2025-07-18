@@ -5,12 +5,12 @@ import 'package:smartnotes/homepage.dart';
 import 'package:smartnotes/services/auth_service.dart';
 import 'package:smartnotes/screens/login_page.dart';
 import 'package:smartnotes/screens/register_page.dart';
-import 'package:smartnotes/notes_page.dart';
 import 'package:smartnotes/settings_page.dart';
 import 'package:smartnotes/profile_page.dart';
 import 'package:smartnotes/calendar_page.dart';
 import 'package:smartnotes/new_note_page.dart';
 import 'package:smartnotes/note_detail_page.dart';
+import 'package:smartnotes/notebook_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final authService = AuthService();
@@ -75,10 +75,11 @@ class _SmartNotesAppState extends State<SmartNotesApp> {
       routes: {
         LoginPage.routeName: (_) => const LoginPage(),
         RegisterPage.routeName: (_) => const RegisterPage(),
-        NotesPage.routeName: (_) =>  NotesPage(),
         '/new_note': (_) => const NewNotePage(),
         '/calendar': (_) => CalendarTaskListPage(),
         '/profile': (_) => const ProfilePage(),
+        '/homepage': (_) => HomePage(),
+        '/notebook': (_) => NotesPage(),
         '/note_detail': (_) => NoteDetailPage(
           title: '',
           description: '',

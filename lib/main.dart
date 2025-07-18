@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:smartnotes/firebase_options.dart';
-import 'package:smartnotes/homePage.dart';
+import 'package:smartnotes/homepage.dart';
 import 'package:smartnotes/services/auth_service.dart';
 import 'package:smartnotes/screens/login_page.dart';
 import 'package:smartnotes/screens/register_page.dart';

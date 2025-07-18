@@ -1,15 +1,12 @@
 // lib/home_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // For Firebase User
-import 'package:provider/provider.dart'; // For Provider
 import 'package:audioplayers/audioplayers.dart'; // For Audio playback
 import 'dart:io'; // For File.fromUri (used with Image.file)
 
 // Local imports for models and services
-import 'package:my_awesome_notes_app/models/note.dart';
-import 'package:my_awesome_notes_app/models/task.dart';
-import 'package:my_awesome_notes_app/db_helper.dart'; // Your custom DB Helper
-import 'package:my_awesome_notes_app/services/auth_service.dart'; // Your Auth Service
+import 'package:smartnotes/db_helper.dart'; // Your custom DB Helper
+import 'package:smartnotes/services/auth_service.dart'; // Your Auth Service
 
 class HomePage extends StatefulWidget {
   @override

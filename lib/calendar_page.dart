@@ -1,12 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'notebook_page.dart'; // Import NotesPage
-import 'homepage.dart'; // Import HomePage
 import 'package:intl/intl.dart'; // For date formatting
-import 'package:smartnotes/models/task.dart'; // Import Task model
-import 'package:smartnotes/providers/notes_provider.dart'; // Import NotesProvider
-import 'package:smartnotes/services/auth_service.dart'; // Import DBHelper
+
+// Ensure these imports match your project structure
+import 'package:smartnotes/notebook_page.dart';
+import 'homepage.dart';
+import 'package:smartnotes/models/task.dart';
+import 'package:smartnotes/providers/notes_provider.dart';
+// import 'package:smartnotes/services/auth_service.dart'; // AuthService is not directly used here for task logic
 
 class CalendarTaskListPage extends StatefulWidget {
   const CalendarTaskListPage({super.key});
@@ -16,38 +18,9 @@ class CalendarTaskListPage extends StatefulWidget {
 }
 
 class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
-  // The selected index for this page's BottomNavigationBar
-  // Calendar is at index 1, so it's selected when this page is active.
-  int _selectedIndex = 1;
+  int _selectedIndex = 1; // Calendar is selected by default
   List<Task> _tasksForSelectedDay = [];
 
-  void _loadTasksForSelectedDay() async {
-  final userId = FirebaseAuth.instance.currentUser?.uid;
-  if (userId == null || _selectedDay == null) return;
-  
-  final provider = Provider.of<NotesProvider>(context, listen: false);
-  _tasksForSelectedDay = provider.getTasksForDate(_selectedDay!);
-  final List<Task> tasks = provider.getTasksForDate(_selectedDay!);
-  setState(() {});
-
-  if (mounted) {
-    setState(() {
-      _tasksForSelectedDay = tasks;
-    });
-  }
-}
-
-// Update _onDaySelected method
-void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
-  if (!mounted) return;
-  setState(() {
-    _selectedDay = selectedDay;
-    _focusedDay = focusedDay;
-  });
-  _loadTasksForSelectedDay();
-}
-
-  // Calendar specific state
   late DateTime _focusedDay;
   DateTime? _selectedDay; // Nullable for no day selected initially
 
@@ -56,19 +29,47 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     super.initState();
     _focusedDay = DateTime.now(); // Initialize with the current month
     _selectedDay = _focusedDay; // Select the current day by default
+
+    // Load tasks for the initially selected day after the first frame is rendered
     WidgetsBinding.instance.addPostFrameCallback((_) {
-    _loadTasksForSelectedDay();
-  });
+      _loadTasksForSelectedDay();
+    });
   }
 
-  // Add this to _CalendarTaskListPageState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId != null) {
-      Provider.of<NotesProvider>(context, listen: false).loadTasks(userId);
+      Provider.of<NotesProvider>(context, listen: true).loadTasks(userId);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadTasksForSelectedDay();
+      });
     }
+  }
+
+  void _loadTasksForSelectedDay() {
+    if (!mounted || _selectedDay == null) return;
+
+    final provider = Provider.of<NotesProvider>(context, listen: false);
+    final List<Task> tasks = provider.getTasksForDate(_selectedDay!);
+
+    setState(() {
+      _tasksForSelectedDay = tasks;
+    });
+  }
+
+  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) async {
+    if (!mounted) return;
+    setState(() {
+      _selectedDay = selectedDay;
+      _focusedDay = focusedDay;
+    });
+    _loadTasksForSelectedDay(); // Reload tasks for the newly selected day
+
+    // Show the add task dialog immediately after selecting a day
+    await _showAddTaskDialog(context);
+    _loadTasksForSelectedDay(); // Reload tasks after dialog closes
   }
 
   void _onItemTapped(int index) {
@@ -76,29 +77,24 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
       _selectedIndex = index;
     });
 
-    // Navigate to the corresponding page
     if (index == 0) {
-      // Home page
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomePage()),
+        MaterialPageRoute(builder: (context) => const HomePage()),
       );
     } else if (index == 2) {
-      // Notes page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const NotesPage()),
       );
     }
-    // If index is 1 (Calendar), stay on this page
   }
 
   void _goToPreviousMonth() {
     if (!mounted) return;
     setState(() {
       _focusedDay = DateTime(_focusedDay.year, _focusedDay.month - 1, 1);
-      // Optionally, clear selected day or re-select if it falls in the new month
-      _selectedDay = null;
+      _selectedDay = null; // Clear selected day when changing month
     });
   }
 
@@ -106,41 +102,28 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     if (!mounted) return;
     setState(() {
       _focusedDay = DateTime(_focusedDay.year, _focusedDay.month + 1, 1);
-      // Optionally, clear selected day or re-select if it falls in the new month
-      _selectedDay = null;
+      _selectedDay = null; // Clear selected day when changing month
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Get the first day of the month
     final DateTime firstDayOfMonth = DateTime(_focusedDay.year, _focusedDay.month, 1);
-    // Get the number of days in the current month
     final DateTime lastDayOfMonth = DateTime(_focusedDay.year, _focusedDay.month + 1, 0);
     final int daysInMonth = lastDayOfMonth.day;
 
-    // Calculate the weekday of the first day (Monday=1, Sunday=7)
-    // Adjust to make Sunday the first day (Sunday=0, Monday=1, ..., Saturday=6)
-    final int firstWeekday = firstDayOfMonth.weekday % 7;
+    final int firstWeekday = firstDayOfMonth.weekday % 7; // Sunday=0, Monday=1, ..., Saturday=6
 
-    // Create a list of all days to display in the grid (including leading/trailing empty cells)
     List<int?> daysGrid = [];
-
-    // Add leading empty cells (for days before the 1st of the month)
     for (int i = 0; i < firstWeekday; i++) {
       daysGrid.add(null);
     }
-
-    // Add actual days of the month
     for (int i = 1; i <= daysInMonth; i++) {
       daysGrid.add(i);
     }
-
-    // Pad with trailing empty cells to make it a full 6x7 grid if needed
-    while (daysGrid.length < 42) { // 6 rows * 7 columns
+    while (daysGrid.length < 42) {
       daysGrid.add(null);
     }
-
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -149,10 +132,10 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-          onPressed: _goToPreviousMonth, // Call function to go to previous month
+          onPressed: _goToPreviousMonth,
         ),
         title: Text(
-          DateFormat('MMMM yyyy').format(_focusedDay), // Display current month and year
+          DateFormat('MMMM yyyy').format(_focusedDay),
           style: const TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
@@ -163,19 +146,18 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
         actions: [
           IconButton(
             icon: const Icon(Icons.arrow_forward_ios, color: Colors.black),
-            onPressed: _goToNextMonth, // Call function to go to next month
+            onPressed: _goToNextMonth,
           ),
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.black),
             onPressed: () {
-              Navigator.pushNamed(context, '/settings');
+              // Navigator.pushNamed(context, '/settings'); // If you have a settings route
             },
           ),
         ],
       ),
       body: Column(
         children: [
-          // Top yellow line
           Container(
             height: 5,
             color: Colors.yellow.shade200,
@@ -237,10 +219,10 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
 
                               return GestureDetector(
                                 onTap: day != null && isCurrentMonthDay
-                                    ? () => _onDaySelected(currentCellDate, _focusedDay)
+                                    ? () => _onDaySelected(currentCellDate, _focusedDay) // Now triggers dialog
                                     : null,
                                 child: Container(
-                                  height: 50, // Adjust cell height as needed
+                                  height: 50,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     color: isSelected ? Colors.yellow.shade200 : (isToday ? Colors.blue.shade100 : Colors.white),
@@ -271,12 +253,13 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
                       ),
                     ),
                     const SizedBox(height: 15),
+                    // Task List Items
                     if (_tasksForSelectedDay.isEmpty)
                       const Text('No tasks for this day.')
                     else
                       ..._tasksForSelectedDay
                           .map((task) => _buildTaskItem(task))
-                          ,
+                          .toList(),
                   ],
                 ),
               ),
@@ -284,24 +267,8 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          _showAddTaskDialog(context); // Show the dialog
-          final userId = FirebaseAuth.instance.currentUser?.uid;
-          if (userId != null) {
-            // Refresh tasks after adding new one
-            Provider.of<NotesProvider>(context, listen: false).loadTasks(userId);
-          }
-        },
-        // Your existing styling:
-        backgroundColor: Colors.yellow,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15.0),
-        ),
-        child: const Icon(Icons.add, color: Colors.black, size: 35),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: BottomNavigationBar( // Bottom nav bar for Calendar page
+      // FloatingActionButton and floatingActionButtonLocation are removed
+      bottomNavigationBar: BottomNavigationBar(
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Column(
@@ -349,7 +316,6 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     );
   }
 
-  // Update _buildTaskItem to use Task model
   Widget _buildTaskItem(Task task) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -362,9 +328,7 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
               await provider.updateTask(
                 task.copyWith(isCompleted: newValue ?? false),
               );
-              if (mounted) {
-                _loadTasksForSelectedDay();
-              }
+              _loadTasksForSelectedDay();
             },
             activeColor: Colors.pink,
             checkColor: Colors.white,
@@ -392,13 +356,18 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
             ),
           ),
           IconButton(
+            icon: const Icon(Icons.edit, color: Colors.black, size: 20),
+            onPressed: () {
+              // TODO: Implement task editing dialog/page
+              print('Edit task: ${task.title}');
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.delete, color: Colors.pink, size: 20),
             onPressed: () async {
               final provider = Provider.of<NotesProvider>(context, listen: false);
               await provider.deleteTask(task.id!, task.userId);
-              if (mounted) {
-                _loadTasksForSelectedDay();
-              }
+              _loadTasksForSelectedDay();
             },
           ),
         ],
@@ -408,7 +377,8 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
 
   void _showAddTaskDialog(BuildContext context) {
     final textController = TextEditingController();
-    DateTime? dueDate = _selectedDay; // Now correctly accessing state variable
+    DateTime initialDueDate = _selectedDay ?? DateTime.now();
+    DateTime? dueDate = initialDueDate;
 
     showDialog(
       context: context,
@@ -422,23 +392,27 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
               decoration: const InputDecoration(labelText: 'Task Title'),
             ),
             const SizedBox(height: 16),
-            TextButton(
-              onPressed: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: dueDate ?? DateTime.now(),
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime(2100),
+            StatefulBuilder(
+              builder: (BuildContext context, StateSetter setStateDialog) {
+                return TextButton(
+                  onPressed: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: dueDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (date != null) {
+                      setStateDialog(() {
+                        dueDate = date;
+                      });
+                    }
+                  },
+                  child: Text(
+                    'Due: ${DateFormat.yMd().format(dueDate)}',
+                  ),
                 );
-                if (date != null) {
-                  dueDate = date;
-                }
               },
-              child: Text(
-                dueDate == null 
-                    ? 'Select Due Date'
-                    : 'Due: ${DateFormat.yMd().format(dueDate!)}',
-              ),
             ),
           ],
         ),
@@ -458,10 +432,8 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
                     title: textController.text,
                     createdAt: DateTime.now(),
                     dueDate: dueDate,
+                    isCompleted: false,
                   ));
-                  if (mounted) {
-                    _loadTasksForSelectedDay(); // Now correctly calling state method
-                  }
                 }
               }
               Navigator.pop(context);
@@ -475,11 +447,10 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
 
   @override
   void dispose() {
-    // Cancel any ongoing operations here if you have any
     super.dispose();
+  }
 }
-}
-// Helper widget for day of the week headers
+
 class _DayOfWeekHeader extends StatelessWidget {
   final String text;
   const _DayOfWeekHeader(this.text);
@@ -487,7 +458,7 @@ class _DayOfWeekHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 30, // Adjust height as needed
+      height: 30,
       alignment: Alignment.center,
       child: Text(
         text,
@@ -500,4 +471,3 @@ class _DayOfWeekHeader extends StatelessWidget {
     );
   }
 }
-

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'note_detail_page.dart'; // Adjust 'your_app_name'
 import 'calendar_page.dart'; // Import CalendarTaskListPage
-import 'home_page.dart'; // Import HomePage
+import 'homePage.dart'; // Import HomePage
 
 class NotesPage extends StatefulWidget { // Changed to StatefulWidget to manage _selectedIndex
   const NotesPage({super.key});

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:smartnotes/firebase_options.dart';
-
+import 'package:smartnotes/homePage.dart';
 import 'package:smartnotes/services/auth_service.dart';
 import 'package:smartnotes/screens/login_page.dart';
 import 'package:smartnotes/screens/register_page.dart';
@@ -10,7 +10,7 @@ import 'package:smartnotes/settings_page.dart';
 import 'package:smartnotes/profile_page.dart';
 import 'package:smartnotes/calendar_page.dart';
 import 'package:smartnotes/new_note_page.dart';
-
+import 'package:smartnotes/note_detail_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final authService = AuthService();
@@ -77,8 +77,13 @@ class _SmartNotesAppState extends State<SmartNotesApp> {
         RegisterPage.routeName: (_) => const RegisterPage(),
         NotesPage.routeName: (_) =>  NotesPage(),
         '/new_note': (_) => const NewNotePage(),
-        '/calendar': (_) => CalendarPage(),
+        '/calendar': (_) => CalendarTaskListPage(),
         '/profile': (_) => const ProfilePage(),
+        '/note_detail': (_) => NoteDetailPage(
+          title: '',
+          description: '',
+          isNewNote: true,
+        ),
         '/settings': (_) => SettingsPage(
           isDarkMode: _isDarkMode,
           onThemeChanged: _toggleTheme,
@@ -99,7 +104,7 @@ class _SmartNotesAppState extends State<SmartNotesApp> {
             return const LoginPage();
           }
 
-          return NotesPage();
+          return HomePage();
         },
       ),
     );

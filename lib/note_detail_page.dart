@@ -13,6 +13,7 @@ class NoteDetailPage extends StatefulWidget {
   final String? folder;
   final String? imageUrl;
   final String? imageLocalPath;
+  final String? initialText;
 
   const NoteDetailPage({
     super.key,
@@ -24,6 +25,7 @@ class NoteDetailPage extends StatefulWidget {
     this.folder,
     this.imageUrl,
     this.imageLocalPath,
+    this.initialText,
   });
 
   @override
@@ -38,7 +40,11 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.title);
-    _descriptionController = TextEditingController(text: widget.description);
+    _descriptionController = TextEditingController(
+  text: widget.isNewNote && widget.initialText != null
+      ? widget.initialText
+      : widget.description,
+);
   }
 
   @override

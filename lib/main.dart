@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:smartnotes/firebase_options.dart';
 import 'package:smartnotes/homepage.dart';
 import 'package:smartnotes/providers/notes_provider.dart';
+import 'package:smartnotes/scan_page.dart';
 import 'package:smartnotes/services/auth_service.dart';
 import 'package:smartnotes/screens/login_page.dart';
 import 'package:smartnotes/screens/register_page.dart';
@@ -91,6 +92,7 @@ class _SmartNotesAppState extends State<SmartNotesApp> {
         '/profile': (_) => const ProfilePage(),
         '/homepage': (_) => HomePage(),
         '/notebook': (_) => NotesPage(),
+        '/scan': (_) => const ScanPage(),
         '/note_detail': (_) => NoteDetailPage(
           title: '',
           description: '',

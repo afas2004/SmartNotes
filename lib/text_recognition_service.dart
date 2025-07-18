@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 class TextRecognitionService {
-  final TextRecognizer _textRecognizer = TextRecognizer(script: TextScript.latin); // Specify script for better accuracy
+  final TextRecognizer _textRecognizer = TextRecognizer(); // Specify script for better accuracy
 
   /// Recognizes text from a given image file path.
   /// Returns the recognized text as a String.

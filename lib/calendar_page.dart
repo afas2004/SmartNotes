@@ -5,6 +5,7 @@ import 'package:intl/intl.dart'; // For date formatting
 
 // Ensure these imports match your project structure
 import 'package:smartnotes/notebook_page.dart';
+import 'package:smartnotes/providers/theme_provider.dart';
 import 'homepage.dart';
 import 'package:smartnotes/models/task.dart';
 import 'package:smartnotes/providers/notes_provider.dart';
@@ -18,7 +19,6 @@ class CalendarTaskListPage extends StatefulWidget {
 }
 
 class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
-  int _selectedIndex = 1; // Calendar is selected by default
   List<Task> _tasksForSelectedDay = [];
 
   late DateTime _focusedDay;
@@ -72,24 +72,6 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
     _loadTasksForSelectedDay(); // Reload tasks after dialog closes
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
-      );
-    } else if (index == 2) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const NotesPage()),
-      );
-    }
-  }
-
   void _goToPreviousMonth() {
     if (!mounted) return;
     setState(() {
@@ -108,10 +90,11 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
     final DateTime firstDayOfMonth = DateTime(_focusedDay.year, _focusedDay.month, 1);
     final DateTime lastDayOfMonth = DateTime(_focusedDay.year, _focusedDay.month + 1, 0);
     final int daysInMonth = lastDayOfMonth.day;
-
     final int firstWeekday = firstDayOfMonth.weekday % 7; // Sunday=0, Monday=1, ..., Saturday=6
 
     List<int?> daysGrid = [];
@@ -126,18 +109,18 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          icon: Icon(Icons.arrow_back_ios, color: isDarkMode ? Colors.grey[200]! : Colors.black),
           onPressed: _goToPreviousMonth,
         ),
         title: Text(
           DateFormat('MMMM yyyy').format(_focusedDay),
-          style: const TextStyle(
-            color: Colors.black,
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -145,13 +128,13 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.arrow_forward_ios, color: Colors.black),
+            icon: Icon(Icons.arrow_forward_ios, color: isDarkMode ? Colors.grey[200]! : Colors.black),
             onPressed: _goToNextMonth,
           ),
           IconButton(
-            icon: const Icon(Icons.settings, color: Colors.black),
+            icon: Icon(Icons.settings, color: isDarkMode ? Colors.grey[200]! : Colors.black),
             onPressed: () {
-              // Navigator.pushNamed(context, '/settings'); // If you have a settings route
+              Navigator.pushNamed(context, '/settings'); // If you have a settings route
             },
           ),
         ],
@@ -172,20 +155,26 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
                     // Day of the week headers
                     Container(
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black, width: 1.0),
+                        border: Border.all(
+                          color: isDarkMode ? Colors.grey[700]! : Colors.black,
+                          width: 1.0,
+                        ),
                       ),
                       child: Table(
-                        border: TableBorder.all(color: Colors.black, width: 1.0),
-                        children: const [
+                        border: TableBorder.all(
+                          color: isDarkMode ? Colors.grey[700]! : Colors.black,
+                          width: 1.0,
+                        ),
+                        children: [
                           TableRow(
                             children: [
-                              _DayOfWeekHeader('Sun'),
-                              _DayOfWeekHeader('Mon'),
-                              _DayOfWeekHeader('Tue'),
-                              _DayOfWeekHeader('Wed'),
-                              _DayOfWeekHeader('Thu'),
-                              _DayOfWeekHeader('Fri'),
-                              _DayOfWeekHeader('Sat'),
+                              _DayOfWeekHeader('Sun', isDarkMode: isDarkMode),
+                              _DayOfWeekHeader('Mon', isDarkMode: isDarkMode),
+                              _DayOfWeekHeader('Tue', isDarkMode: isDarkMode),
+                              _DayOfWeekHeader('Wed', isDarkMode: isDarkMode),
+                              _DayOfWeekHeader('Thu', isDarkMode: isDarkMode),
+                              _DayOfWeekHeader('Fri', isDarkMode: isDarkMode),
+                              _DayOfWeekHeader('Sat', isDarkMode: isDarkMode),
                             ],
                           ),
                         ],
@@ -194,10 +183,16 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
                     // Calendar Grid
                     Container(
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black, width: 1.0),
+                        border: Border.all(
+                          color: isDarkMode ? Colors.grey[700]! : Colors.black,
+                          width: 1.0,
+                        ),
                       ),
                       child: Table(
-                        border: TableBorder.all(color: Colors.black, width: 1.0),
+                        border: TableBorder.all(
+                          color: isDarkMode ? Colors.grey[700]! : Colors.black,
+                          width: 1.0,
+                        ),
                         children: List.generate(6, (rowIndex) {
                           return TableRow(
                             children: List.generate(7, (colIndex) {
@@ -219,21 +214,30 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
 
                               return GestureDetector(
                                 onTap: day != null && isCurrentMonthDay
-                                    ? () => _onDaySelected(currentCellDate, _focusedDay) // Now triggers dialog
+                                    ? () => _onDaySelected(currentCellDate, _focusedDay)
                                     : null,
                                 child: Container(
                                   height: 50,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    color: isSelected ? Colors.yellow.shade200 : (isToday ? Colors.blue.shade100 : Colors.white),
-                                    border: Border.all(color: Colors.black, width: 1.0),
+                                    color: isSelected 
+                                        ? Colors.yellow.shade200 
+                                        : (isToday 
+                                            ? (isDarkMode ? Colors.blue[900]! : Colors.blue.shade100)
+                                            : (isDarkMode ? Colors.grey[900]! : Colors.white)),
+                                    border: Border.all(
+                                      color: isDarkMode ? Colors.grey[700]! : Colors.black,
+                                      width: 1.0,
+                                    ),
                                   ),
                                   child: Text(
                                     day != null && isCurrentMonthDay ? day.toString() : '',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
-                                      color: isCurrentMonthDay ? Colors.black : Colors.grey,
+                                      color: isCurrentMonthDay 
+                                          ? (isDarkMode ? Colors.white : Colors.black)
+                                          : (isDarkMode ? Colors.grey[500]! : Colors.grey),
                                     ),
                                   ),
                                 ),
@@ -268,55 +272,12 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
         ],
       ),
       // FloatingActionButton and floatingActionButtonLocation are removed
-      bottomNavigationBar: BottomNavigationBar(
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Column(
-              children: [
-                const Icon(Icons.home, size: 30),
-                const Text('Home', style: TextStyle(fontSize: 12)),
-              ],
-            ),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                color: _selectedIndex == 1 ? Colors.grey.shade300 : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.calendar_month, size: 30),
-                  const Text('Calendar', style: TextStyle(fontSize: 12)),
-                ],
-              ),
-            ),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Column(
-              children: [
-                const Icon(Icons.notes, size: 30),
-                const Text('Notes', style: TextStyle(fontSize: 12)),
-              ],
-            ),
-            label: '',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.black,
-        onTap: _onItemTapped,
-        backgroundColor: Colors.white,
-        type: BottomNavigationBarType.fixed,
-      ),
     );
   }
 
   Widget _buildTaskItem(Task task) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -337,7 +298,7 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
             child: Container(
               height: 40,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.black, width: 1.0),
+                border: Border.all(color: isDarkMode ? Colors.grey[700]! : Colors.black, width: 1.0),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Padding(
@@ -356,7 +317,7 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.edit, color: Colors.black, size: 20),
+            icon: Icon(Icons.edit, color: isDarkMode ? Colors.grey[200]! : Colors.black, size: 20),
             onPressed: () {
               // TODO: Implement task editing dialog/page
               print('Edit task: ${task.title}');
@@ -453,7 +414,9 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
 
 class _DayOfWeekHeader extends StatelessWidget {
   final String text;
-  const _DayOfWeekHeader(this.text);
+  final bool isDarkMode;
+  
+  const _DayOfWeekHeader(this.text, {required this.isDarkMode});
 
   @override
   Widget build(BuildContext context) {
@@ -462,10 +425,10 @@ class _DayOfWeekHeader extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.bold,
           fontSize: 14,
-          color: Colors.black,
+          color: isDarkMode ? Colors.white : Colors.black,
         ),
       ),
     );

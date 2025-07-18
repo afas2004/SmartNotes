@@ -10,6 +10,7 @@ import 'package:smartnotes/calendar_page.dart';
 import 'package:smartnotes/notebook_page.dart';
 import 'package:intl/intl.dart';
 import 'package:smartnotes/note_detail_page.dart';
+import 'package:smartnotes/providers/theme_provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,7 +22,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   List<Note> recentNotes = [];
   List<Task> recentTasks = [];
-  int _selectedIndex = 0;
   final DBHelper _dbHelper = DBHelper();
 
   @override
@@ -54,35 +54,23 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage()),
-      );
-    } else if (index == 1) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const CalendarTaskListPage()),
-      );
-    } else if (index == 2) {
-      Navigator.pushReplacementNamed(context, '/notebook');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: const Text('Smart Notes'),
+        backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
+        title: Text('Smart Notes',
+        style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.folder_outlined),
+            icon: Icon(Icons.folder_outlined,
+            color: isDarkMode ? Colors.white : Colors.black),
             onPressed: () {
               Navigator.push(
                 context,
@@ -91,7 +79,8 @@ class _HomePageState extends State<HomePage> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: Icon(Icons.settings,
+            color: isDarkMode ? Colors.white : Colors.black),
             onPressed: () {
               Navigator.pushNamed(context, '/settings');
             },
@@ -110,7 +99,14 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.all(16.0),
               child: ListView(
                 children: [
-                  const Text('Recent Notes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(
+                    'Recent Notes',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   if (recentNotes.isEmpty)
                     const Text('No recent notes.')
@@ -142,6 +138,7 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'home_fab',
         onPressed: () {
           Navigator.push(
             context,
@@ -161,51 +158,6 @@ class _HomePageState extends State<HomePage> {
         child: const Icon(Icons.add, color: Colors.black, size: 35),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: BottomNavigationBar(
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                color: _selectedIndex == 0 ? Colors.grey.shade300 : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.home, size: 30),
-                  Text('Home', style: TextStyle(fontSize: 12)),
-                ],
-              ),
-            ),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Column(
-              children: [
-                const Icon(Icons.calendar_month, size: 30),
-                const Text('Calendar', style: TextStyle(fontSize: 12)),
-              ],
-            ),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Column(
-              children: [
-                const Icon(Icons.notes, size: 30),
-                const Text('Notes', style: TextStyle(fontSize: 12)),
-              ],
-            ),
-            label: '',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.black,
-        onTap: _onItemTapped,
-        backgroundColor: Colors.white,
-        type: BottomNavigationBarType.fixed,
-      ),
     );
   }
 

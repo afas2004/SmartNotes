@@ -4,12 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smartnotes/models/note.dart';
+import 'package:smartnotes/new_note_page.dart';
 import 'package:smartnotes/providers/notes_provider.dart';
+import 'package:smartnotes/providers/theme_provider.dart';
 import 'note_detail_page.dart'; // Adjust 'your_app_name'
 import 'calendar_page.dart'; // Import CalendarTaskListPage
 import 'homepage.dart'; // Import HomePage
 
-class NotesPage extends StatefulWidget { // Changed to StatefulWidget to manage _selectedIndex
+class NotesPage extends StatefulWidget { 
   const NotesPage({super.key});
 
   @override
@@ -17,9 +19,6 @@ class NotesPage extends StatefulWidget { // Changed to StatefulWidget to manage 
 }
 
 class _NotesPageState extends State<NotesPage> {
-  // The selected index for this page's BottomNavigationBar
-  // Notes is at index 2, so it's selected when this page is active.
-  int _selectedIndex = 2;
 
   // Update _NotesPageState class
   @override
@@ -36,45 +35,20 @@ class _NotesPageState extends State<NotesPage> {
     await provider.loadNotes(userId);
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    // Navigate to the corresponding page
-    if (index == 0) {
-      // Home page
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) =>  HomePage()),
-      );
-    } else if (index == 1) {
-      // Calendar page
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) =>  CalendarTaskListPage()),
-      );
-    }
-    // If index is 2 (Notes), stay on this page
-  }
-
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.folder, color: Colors.yellow),
-          onPressed: () {
-            // Handle folder icon
-          },
-        ),
-        title: const Text(
+        title: Text(
           'Notes',
           style: TextStyle(
-            color: Colors.black,
+            color: isDarkMode ? Colors.white : Colors.black,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -82,7 +56,13 @@ class _NotesPageState extends State<NotesPage> {
         centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings, color: Colors.black),
+            icon: Icon(Icons.folder_outlined, 
+              color: isDarkMode ? Colors.white : Colors.black),
+            onPressed: () => Navigator.push(context, 
+              MaterialPageRoute(builder: (context) => NewNotePage())),
+          ),
+          IconButton(
+            icon: Icon(Icons.settings, color: isDarkMode ? Colors.white : Colors.black),
             onPressed: () {
               Navigator.pushNamed(context, '/settings');
             },
@@ -142,6 +122,7 @@ class _NotesPageState extends State<NotesPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'notes_fab',
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -168,57 +149,15 @@ class _NotesPageState extends State<NotesPage> {
         child: const Icon(Icons.add, color: Colors.black, size: 35),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: BottomNavigationBar( // Bottom nav bar for Notes page
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Column(
-              children: [
-                const Icon(Icons.home, size: 30),
-                const Text('Home', style: TextStyle(fontSize: 12)),
-              ],
-            ),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Column(
-              children: [
-                const Icon(Icons.calendar_month, size: 30),
-                const Text('Calendar', style: TextStyle(fontSize: 12)),
-              ],
-            ),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                color: _selectedIndex == 2 ? Colors.grey.shade300 : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.notes, size: 30),
-                  const Text('Notes', style: TextStyle(fontSize: 12)),
-                ],
-              ),
-            ),
-            label: '',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.black,
-        onTap: _onItemTapped,
-        backgroundColor: Colors.white,
-        type: BottomNavigationBarType.fixed,
-      ),
+
     );
   }
 
   // Update _buildNoteCard to use Note model
   Widget _buildNoteCard(BuildContext context, Note note) {
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
     return Card(
+      color: isDarkMode ? Colors.grey[800] : Colors.white,
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
       child: InkWell(
@@ -269,9 +208,10 @@ class _NotesPageState extends State<NotesPage> {
               const SizedBox(height: 10),
               Text(
                 note.title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
+                  color: isDarkMode ? Colors.white : Colors.black,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -279,7 +219,7 @@ class _NotesPageState extends State<NotesPage> {
               const SizedBox(height: 5),
               Text(
                 note.content ?? '',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[600],  fontSize: 12),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),

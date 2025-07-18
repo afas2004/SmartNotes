@@ -3,7 +3,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:smartnotes/firebase_options.dart';
 import 'package:smartnotes/homepage.dart';
+import 'package:smartnotes/main_layout.dart';
 import 'package:smartnotes/providers/notes_provider.dart';
+import 'package:smartnotes/providers/theme_provider.dart';
 import 'package:smartnotes/scan_page.dart';
 import 'package:smartnotes/services/auth_service.dart';
 import 'package:smartnotes/screens/login_page.dart';
@@ -28,7 +30,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => NotesProvider()),
-        // Add other providers if needed
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const SmartNotesApp(),
     ),
@@ -68,6 +70,7 @@ class _SmartNotesAppState extends State<SmartNotesApp> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'SmartNotes',
@@ -81,7 +84,7 @@ class _SmartNotesAppState extends State<SmartNotesApp> {
         visualDensity: VisualDensity.adaptivePlatformDensity,
         brightness: Brightness.dark,
       ),
-      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
 
       // Named navigation routes
       routes: {
@@ -118,7 +121,7 @@ class _SmartNotesAppState extends State<SmartNotesApp> {
             return const LoginPage();
           }
 
-          return HomePage();
+          return MainLayout();
         },
       ),
     );

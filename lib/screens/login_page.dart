@@ -96,7 +96,7 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: () async {
                         await _login();
                         if (FirebaseAuth.instance.currentUser != null && mounted) {
-                        Navigator.of(context).pushReplacementNamed('/notes');
+                        Navigator.of(context).pushReplacementNamed('/homepage');
                         }
                       },
                       child: const Text('Sign In'),

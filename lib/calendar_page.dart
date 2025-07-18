@@ -221,7 +221,7 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     color: isSelected 
-                                        ? Colors.yellow.shade200 
+                                        ? isDarkMode ? Colors.yellow.shade900 : Colors.yellow.shade200
                                         : (isToday 
                                             ? (isDarkMode ? Colors.blue[900]! : Colors.blue.shade100)
                                             : (isDarkMode ? Colors.grey[900]! : Colors.white)),

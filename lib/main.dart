@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
 import 'package:smartnotes/firebase_options.dart';
 import 'package:smartnotes/homepage.dart';
+import 'package:smartnotes/providers/notes_provider.dart';
 import 'package:smartnotes/services/auth_service.dart';
 import 'package:smartnotes/screens/login_page.dart';
 import 'package:smartnotes/screens/register_page.dart';
@@ -20,7 +22,16 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const SmartNotesApp());
+  
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => NotesProvider()),
+        // Add other providers if needed
+      ],
+      child: const SmartNotesApp(),
+    ),
+  );
 }
 
 class SmartNotesApp extends StatefulWidget {

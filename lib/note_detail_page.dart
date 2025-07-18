@@ -1,16 +1,30 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smartnotes/models/note.dart';
+import 'package:smartnotes/providers/notes_provider.dart';
 
 class NoteDetailPage extends StatefulWidget {
   final String title;
   final String description;
   final bool isNewNote;
+  final int? noteId;
+  final DateTime? createdAt;
+  final String? folder;
+  final String? imageUrl;
+  final String? imageLocalPath;
 
   const NoteDetailPage({
-    super.key,
-    required this.title,
-    required this.description,
-    this.isNewNote = false,
-  });
+  super.key,
+  required this.title,
+  required this.description,
+  required this.isNewNote,
+  this.noteId, // Add this
+  this.createdAt, // Add this
+  this.folder, // Add if using folders
+  this.imageUrl, // Add if using images
+  this.imageLocalPath, // Add if using local images
+});
 
   @override
   State<NoteDetailPage> createState() => _NoteDetailPageState();
@@ -59,12 +73,37 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.save, color: Colors.black),
-            onPressed: () {
-              // TODO: Implement save logic here
-              // You would typically save _titleController.text and _descriptionController.text
-              // to a database or state management system.
-              print('Note saved: Title: ${_titleController.text}, Description: ${_descriptionController.text}');
-              Navigator.pop(context); // Go back after saving
+            onPressed: () async {
+              final userId = FirebaseAuth.instance.currentUser?.uid;
+              if (userId == null) return;
+              
+              final provider = Provider.of<NotesProvider>(context, listen: false);
+              
+              if (widget.isNewNote) {
+                await provider.addNote(Note(
+                  userId: userId,
+                  title: _titleController.text,
+                  content: _descriptionController.text,
+                  createdAt: DateTime.now(),
+                ));
+              } else {
+                await provider.updateNote(
+                  Note(
+                    id: widget.noteId, // You'll need to pass this from notebook_page
+                    userId: userId,
+                    title: _titleController.text,
+                    content: _descriptionController.text,
+                    createdAt: widget.createdAt ?? DateTime.now(), // Pass from notebook_page
+                    updatedAt: DateTime.now(), // Set update timestamp
+                    // Include other fields if needed:
+                    folder: widget.folder,
+                    imageUrl: widget.imageUrl,
+                    imageLocalPath: widget.imageLocalPath,
+                  ),
+                );
+              }
+              
+              Navigator.pop(context, true); // Return true to indicate success
             },
           ),
         ],

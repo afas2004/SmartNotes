@@ -21,7 +21,7 @@ class DBHelper {
     debugPrint('Database path: $path');
     return await openDatabase(
       path,
-      version: 2, // IMPORTANT: Increment version for schema changes!
+      version: 3, // IMPORTANT: Increment version for schema changes!
       onCreate: _onCreate,
       onUpgrade: _onUpgrade, // Add onUpgrade callback
     );
@@ -64,11 +64,12 @@ class DBHelper {
     await db.execute('''
       CREATE TABLE tasks(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId TEXT NOT NULL,       -- Added for Firebase Auth integration
+        userId TEXT NOT NULL,
         title TEXT NOT NULL,
-        isCompleted INTEGER NOT NULL DEFAULT 0, -- 0 for false, 1 for true
+        isCompleted INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
-        updated_at TEXT
+        updated_at TEXT,
+        due_date TEXT  // Add this line
       )
     ''');
 
@@ -120,6 +121,10 @@ class DBHelper {
     }
     // Add more migration steps for future versions if needed (e.g., if newVersion becomes 3)
     debugPrint('Database upgrade complete.');
+    if (oldVersion < 3) {
+      await db.execute("ALTER TABLE tasks ADD COLUMN due_date TEXT");
+      debugPrint('Added due_date column to tasks table');
+    }
   }
 
   // --- NOTES CRUD ---
@@ -256,4 +261,23 @@ class DBHelper {
       ORDER BY notes.updated_at DESC
     ''', [userId, tagId]);
   }
+  // Add to DBHelper class
+  Future<int> insertNoteWithImage(Map<String, dynamic> note) async {
+    final dbClient = await db;
+    if (!note.containsKey('userId') || note['userId'] == null) {
+      throw ArgumentError('userId is required for inserting a note.');
+    }
+    return await dbClient.insert('notes', note);
+  }
+
+  Future<List<Map<String, dynamic>>> getNotesWithImages(String userId) async {
+    final dbClient = await db;
+    return await dbClient.query(
+      'notes',
+      where: 'userId = ? AND (imageLocalPath IS NOT NULL OR imageUrl IS NOT NULL)',
+      whereArgs: [userId],
+      orderBy: 'updated_at DESC',
+    );
+  }
+
 }

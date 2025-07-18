@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'package:smartnotes/db_helper.dart';
 import 'package:smartnotes/models/note.dart';
 import 'package:smartnotes/models/task.dart';
-import 'package:smartnotes/new_note_page.dart'; // Create this if you don't have it
+import 'package:smartnotes/new_note_page.dart';
+import 'package:smartnotes/providers/notes_provider.dart'; // Create this if you don't have it
 
 class HomePage extends StatefulWidget {
   @override
@@ -22,6 +24,15 @@ class _HomePageState extends State<HomePage> {
     _loadData();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      Provider.of<NotesProvider>(context, listen: false).refreshAllData(userId);
+    }
+  }
+
   Future<void> _loadData() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) return;
@@ -29,10 +40,12 @@ class _HomePageState extends State<HomePage> {
     final noteMaps = await _dbHelper.getNotes(userId, limit: 2);
     final taskMaps = await _dbHelper.getTasks(userId, limit: 4);
 
-    setState(() {
-      recentNotes = noteMaps.map((e) => Note.fromMap(e)).toList();
-      recentTasks = taskMaps.map((e) => Task.fromMap(e)).toList();
-    });
+    if (mounted) {  // Add this check
+      setState(() {
+        recentNotes = noteMaps.map((e) => Note.fromMap(e)).toList();
+        recentTasks = taskMaps.map((e) => Task.fromMap(e)).toList();
+      });
+    }
   }
 
   void _onItemTapped(int index) {
@@ -118,5 +131,11 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    // Cancel any ongoing operations here if you have any
+    super.dispose();
   }
 }

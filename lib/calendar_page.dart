@@ -1,7 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'notebook_page.dart'; // Import NotesPage
 import 'homepage.dart'; // Import HomePage
 import 'package:intl/intl.dart'; // For date formatting
+import 'package:smartnotes/models/task.dart'; // Import Task model
+import 'package:smartnotes/models/note.dart'; // Import Note model
+import 'package:smartnotes/providers/notes_provider.dart'; // Import NotesProvider
+import 'package:smartnotes/services/auth_service.dart'; // Import DBHelper
 
 class CalendarTaskListPage extends StatefulWidget {
   const CalendarTaskListPage({super.key});
@@ -14,6 +20,33 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
   // The selected index for this page's BottomNavigationBar
   // Calendar is at index 1, so it's selected when this page is active.
   int _selectedIndex = 1;
+  List<Task> _tasksForSelectedDay = [];
+
+  void _loadTasksForSelectedDay() async {
+  final userId = FirebaseAuth.instance.currentUser?.uid;
+  if (userId == null || _selectedDay == null) return;
+  
+  final provider = Provider.of<NotesProvider>(context, listen: false);
+  _tasksForSelectedDay = provider.getTasksForDate(_selectedDay!);
+  final List<Task> tasks = await provider.getTasksForDate(_selectedDay!);
+  setState(() {});
+
+  if (mounted) {
+    setState(() {
+      _tasksForSelectedDay = tasks;
+    });
+  }
+}
+
+// Update _onDaySelected method
+void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
+  if (!mounted) return;
+  setState(() {
+    _selectedDay = selectedDay;
+    _focusedDay = focusedDay;
+  });
+  _loadTasksForSelectedDay();
+}
 
   // Calendar specific state
   late DateTime _focusedDay;
@@ -24,6 +57,19 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
     super.initState();
     _focusedDay = DateTime.now(); // Initialize with the current month
     _selectedDay = _focusedDay; // Select the current day by default
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _loadTasksForSelectedDay();
+  });
+  }
+
+  // Add this to _CalendarTaskListPageState
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      Provider.of<NotesProvider>(context, listen: false).loadTasks(userId);
+    }
   }
 
   void _onItemTapped(int index) {
@@ -48,16 +94,8 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
     // If index is 1 (Calendar), stay on this page
   }
 
-  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
-    setState(() {
-      _selectedDay = selectedDay;
-      _focusedDay = focusedDay; // Update focused day if needed
-    });
-    // You can add logic here to load tasks for the selected day
-    print('Selected day: ${DateFormat('yyyy-MM-dd').format(selectedDay)}');
-  }
-
   void _goToPreviousMonth() {
+    if (!mounted) return;
     setState(() {
       _focusedDay = DateTime(_focusedDay.year, _focusedDay.month - 1, 1);
       // Optionally, clear selected day or re-select if it falls in the new month
@@ -66,6 +104,7 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
   }
 
   void _goToNextMonth() {
+    if (!mounted) return;
     setState(() {
       _focusedDay = DateTime(_focusedDay.year, _focusedDay.month + 1, 1);
       // Optionally, clear selected day or re-select if it falls in the new month
@@ -233,12 +272,12 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
                       ),
                     ),
                     const SizedBox(height: 15),
-                    // Task List Items
-                    _buildTaskItem('Task 1'),
-                    _buildTaskItem('Task 2'),
-                    _buildTaskItem('Task 3'),
-                    _buildTaskItem('Task 4'),
-                    // Add more task items as needed
+                    if (_tasksForSelectedDay.isEmpty)
+                      const Text('No tasks for this day.')
+                    else
+                      ..._tasksForSelectedDay
+                          .map((task) => _buildTaskItem(task))
+                          .toList(),
                   ],
                 ),
               ),
@@ -247,12 +286,18 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Handle add new task
+        onPressed: () async {
+          _showAddTaskDialog(context); // Show the dialog
+          final userId = FirebaseAuth.instance.currentUser?.uid;
+          if (userId != null) {
+            // Refresh tasks after adding new one
+            Provider.of<NotesProvider>(context, listen: false).loadTasks(userId);
+          }
         },
+        // Your existing styling:
         backgroundColor: Colors.yellow,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15.0), // Rounded corners
+          borderRadius: BorderRadius.circular(15.0),
         ),
         child: const Icon(Icons.add, color: Colors.black, size: 35),
       ),
@@ -305,17 +350,24 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
     );
   }
 
-  Widget _buildTaskItem(String taskName) {
+  // Update _buildTaskItem to use Task model
+  Widget _buildTaskItem(Task task) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: [
           Checkbox(
-            value: false, // Placeholder for task completion
-            onChanged: (bool? newValue) {
-              // Handle checkbox state change
+            value: task.isCompleted,
+            onChanged: (bool? newValue) async {
+              final provider = Provider.of<NotesProvider>(context, listen: false);
+              await provider.updateTask(
+                task.copyWith(isCompleted: newValue ?? false),
+              );
+              if (mounted) {
+                _loadTasksForSelectedDay();
+              }
             },
-            activeColor: Colors.pink, // Checkbox color as per image
+            activeColor: Colors.pink,
             checkColor: Colors.white,
           ),
           Expanded(
@@ -330,31 +382,104 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    taskName,
-                    style: const TextStyle(fontSize: 16),
+                    task.title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.edit, color: Colors.black, size: 20),
-            onPressed: () {
-              // Handle edit task
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.delete, color: Colors.pink, size: 20),
-            onPressed: () {
-              // Handle delete task
+            onPressed: () async {
+              final provider = Provider.of<NotesProvider>(context, listen: false);
+              await provider.deleteTask(task.id!, task.userId);
+              if (mounted) {
+                _loadTasksForSelectedDay();
+              }
             },
           ),
         ],
       ),
     );
   }
-}
 
+  void _showAddTaskDialog(BuildContext context) {
+    final textController = TextEditingController();
+    DateTime? dueDate = _selectedDay; // Now correctly accessing state variable
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Task'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: textController,
+              decoration: const InputDecoration(labelText: 'Task Title'),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: dueDate ?? DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+                if (date != null) {
+                  dueDate = date;
+                }
+              },
+              child: Text(
+                dueDate == null 
+                    ? 'Select Due Date'
+                    : 'Due: ${DateFormat.yMd().format(dueDate!)}',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (textController.text.isNotEmpty) {
+                final userId = FirebaseAuth.instance.currentUser?.uid;
+                if (userId != null) {
+                  final provider = Provider.of<NotesProvider>(context, listen: false);
+                  await provider.addTask(Task(
+                    userId: userId,
+                    title: textController.text,
+                    createdAt: DateTime.now(),
+                    dueDate: dueDate,
+                  ));
+                  if (mounted) {
+                    _loadTasksForSelectedDay(); // Now correctly calling state method
+                  }
+                }
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    // Cancel any ongoing operations here if you have any
+    super.dispose();
+}
+}
 // Helper widget for day of the week headers
 class _DayOfWeekHeader extends StatelessWidget {
   final String text;
@@ -376,3 +501,4 @@ class _DayOfWeekHeader extends StatelessWidget {
     );
   }
 }
+

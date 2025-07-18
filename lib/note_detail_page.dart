@@ -13,18 +13,20 @@ class NoteDetailPage extends StatefulWidget {
   final String? folder;
   final String? imageUrl;
   final String? imageLocalPath;
+  final String? initialText; // <--- ADDED THIS LINE
 
   const NoteDetailPage({
-  super.key,
-  required this.title,
-  required this.description,
-  required this.isNewNote,
-  this.noteId, // Add this
-  this.createdAt, // Add this
-  this.folder, // Add if using folders
-  this.imageUrl, // Add if using images
-  this.imageLocalPath, // Add if using local images
-});
+    super.key,
+    required this.title,
+    required this.description,
+    required this.isNewNote,
+    this.noteId,
+    this.createdAt,
+    this.folder,
+    this.imageUrl,
+    this.imageLocalPath,
+    this.initialText, // <--- ADDED THIS LINE
+  });
 
   @override
   State<NoteDetailPage> createState() => _NoteDetailPageState();
@@ -38,7 +40,10 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.title);
-    _descriptionController = TextEditingController(text: widget.description);
+    // Use initialText if provided, otherwise use existing description or empty string
+    _descriptionController = TextEditingController(
+      text: widget.initialText ?? widget.description, // <--- MODIFIED THIS LINE
+    );
   }
 
   @override
@@ -75,7 +80,13 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
             icon: const Icon(Icons.save, color: Colors.black),
             onPressed: () async {
               final userId = FirebaseAuth.instance.currentUser?.uid;
-              if (userId == null) return;
+              if (userId == null) {
+                // Optionally show a message if user is not logged in
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('User not logged in. Cannot save note.')),
+                );
+                return;
+              }
               
               final provider = Provider.of<NotesProvider>(context, listen: false);
               
@@ -87,15 +98,21 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                   createdAt: DateTime.now(),
                 ));
               } else {
+                // Ensure noteId is not null for updates
+                if (widget.noteId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Error: Cannot update note without an ID.')),
+                  );
+                  return;
+                }
                 await provider.updateNote(
                   Note(
-                    id: widget.noteId, // You'll need to pass this from notebook_page
+                    id: widget.noteId,
                     userId: userId,
                     title: _titleController.text,
                     content: _descriptionController.text,
-                    createdAt: widget.createdAt ?? DateTime.now(), // Pass from notebook_page
-                    updatedAt: DateTime.now(), // Set update timestamp
-                    // Include other fields if needed:
+                    createdAt: widget.createdAt ?? DateTime.now(),
+                    updatedAt: DateTime.now(),
                     folder: widget.folder,
                     imageUrl: widget.imageUrl,
                     imageLocalPath: widget.imageLocalPath,

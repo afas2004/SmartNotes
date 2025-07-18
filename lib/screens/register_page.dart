@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class RegisterPage extends StatefulWidget {
   static const routeName = '/register';
-  const RegisterPage({Key? key}) : super(key: key);
+  const RegisterPage({super.key});
   @override
   _RegisterPageState createState() => _RegisterPageState();
 }

@@ -6,7 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginPage extends StatefulWidget {
   static const routeName = '/login';
-  const LoginPage({Key? key}) : super(key: key);
+  const LoginPage({super.key});
   @override
   _LoginPageState createState() => _LoginPageState();
 }

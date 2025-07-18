@@ -10,6 +10,8 @@ import 'package:smartnotes/calendar_page.dart'; // Import calendar_page.dart
 import 'package:smartnotes/notebook_page.dart'; // Import notebook_page.dart
 
 class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
   @override
   State<HomePage> createState() => _HomePageState();
 }

@@ -38,7 +38,7 @@ class SettingsPage extends StatelessWidget {
             leading: const Icon(Icons.person),
             title: Text(user?.displayName ?? 'No display name'),
             subtitle: Text(user?.email ?? 'No email'),
-            tileColor: Theme.of(context).colorScheme.surfaceVariant,
+            tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),

@@ -27,7 +27,7 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
   
   final provider = Provider.of<NotesProvider>(context, listen: false);
   _tasksForSelectedDay = provider.getTasksForDate(_selectedDay!);
-  final List<Task> tasks = await provider.getTasksForDate(_selectedDay!);
+  final List<Task> tasks = provider.getTasksForDate(_selectedDay!);
   setState(() {});
 
   if (mounted) {
@@ -276,7 +276,7 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
                     else
                       ..._tasksForSelectedDay
                           .map((task) => _buildTaskItem(task))
-                          .toList(),
+                          ,
                   ],
                 ),
               ),

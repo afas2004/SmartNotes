@@ -112,7 +112,7 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: () async {
                         await _loginWithGoogle();
                         if (FirebaseAuth.instance.currentUser != null && mounted) {
-                        Navigator.of(context).pushReplacementNamed('/notes');
+                        Navigator.of(context).pushReplacementNamed('/calendar');
                         }
                       },
                       style: ElevatedButton.styleFrom(

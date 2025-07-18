@@ -130,7 +130,7 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.black),
             onPressed: () {
-              // Handle settings icon
+              Navigator.pushNamed(context, '/settings');
             },
           ),
         ],

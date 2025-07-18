@@ -5,7 +5,6 @@ import 'notebook_page.dart'; // Import NotesPage
 import 'homepage.dart'; // Import HomePage
 import 'package:intl/intl.dart'; // For date formatting
 import 'package:smartnotes/models/task.dart'; // Import Task model
-import 'package:smartnotes/models/note.dart'; // Import Note model
 import 'package:smartnotes/providers/notes_provider.dart'; // Import NotesProvider
 import 'package:smartnotes/services/auth_service.dart'; // Import DBHelper
 

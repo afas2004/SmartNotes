@@ -5,7 +5,9 @@ import 'package:smartnotes/db_helper.dart';
 import 'package:smartnotes/models/note.dart';
 import 'package:smartnotes/models/task.dart';
 import 'package:smartnotes/new_note_page.dart';
-import 'package:smartnotes/providers/notes_provider.dart'; // Create this if you don't have it
+import 'package:smartnotes/providers/notes_provider.dart';
+import 'package:smartnotes/calendar_page.dart'; // Import calendar_page.dart
+import 'package:smartnotes/notebook_page.dart'; // Import notebook_page.dart
 
 class HomePage extends StatefulWidget {
   @override
@@ -15,7 +17,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   List<Note> recentNotes = [];
   List<Task> recentTasks = [];
-  int _selectedIndex = 0;
+  int _selectedIndex = 0; // Set to 0 for Home
   final DBHelper _dbHelper = DBHelper();
 
   @override
@@ -40,7 +42,7 @@ class _HomePageState extends State<HomePage> {
     final noteMaps = await _dbHelper.getNotes(userId, limit: 2);
     final taskMaps = await _dbHelper.getTasks(userId, limit: 4);
 
-    if (mounted) {  // Add this check
+    if (mounted) {
       setState(() {
         recentNotes = noteMaps.map((e) => Note.fromMap(e)).toList();
         recentTasks = taskMaps.map((e) => Task.fromMap(e)).toList();
@@ -52,18 +54,28 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _selectedIndex = index;
     });
-    if (index == 1) {
-      Navigator.pushReplacementNamed(context, '/calendar');
+    if (index == 0) {
+      // Stay on Home page, or navigate to Home if coming from another page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
+      );
+    } else if (index == 1) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const CalendarTaskListPage()),
+      );
     } else if (index == 2) {
-      Navigator.pushReplacementNamed(context, '/notebook');
+      Navigator.pushReplacementNamed(context, '/notebook'); // Assuming '/notebook' route is defined for NotesPage
     }
-    // index 0 is Home, do nothing
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.yellow.shade200, // Yellow background
       appBar: AppBar(
+        backgroundColor: Colors.yellow.shade200, // Yellow app bar
         title: const Text('Smart Notes'),
         actions: [
           IconButton(
@@ -113,29 +125,55 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
+        items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+            icon: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              decoration: BoxDecoration(
+                color: _selectedIndex == 0 ? Colors.grey.shade300 : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.home, size: 30),
+                  Text('Home', style: TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+            label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month),
-            label: 'Calendar',
+            icon: Column(
+              children: [
+                const Icon(Icons.calendar_month, size: 30),
+                const Text('Calendar', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+            label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notes),
-            label: 'Notes',
+            icon: Column(
+              children: [
+                const Icon(Icons.notes, size: 30),
+                const Text('Notes', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+            label: '',
           ),
         ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.black,
+        unselectedItemColor: Colors.black,
+        onTap: _onItemTapped,
+        backgroundColor: Colors.white,
+        type: BottomNavigationBarType.fixed,
       ),
     );
   }
 
   @override
   void dispose() {
-    // Cancel any ongoing operations here if you have any
     super.dispose();
   }
 }

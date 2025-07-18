@@ -1,12 +1,20 @@
 // lib/home_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // For Firebase User
+import 'package:provider/provider.dart'; // For Provider
 import 'package:audioplayers/audioplayers.dart'; // For Audio playback
 import 'dart:io'; // For File.fromUri (used with Image.file)
 
 // Local imports for models and services
-import 'package:smartnotes/db_helper.dart'; // Your custom DB Helper
-import 'package:smartnotes/services/auth_service.dart'; // Your Auth Service
+import 'package:my_awesome_notes_app/models/note.dart';
+import 'package:my_awesome_notes_app/models/task.dart';
+import 'package:my_awesome_notes_app/db_helper.dart'; // Your custom DB Helper
+import 'package:my_awesome_notes_app/services/auth_service.dart'; // Your Auth Service
+
+// Placeholder for other pages in BottomNavigationBar
+// You'll need to create these files if they don't exist
+import 'package:my_awesome_notes_app/screens/calendar_page.dart'; // Assuming this is your Calendar page
+import 'package:my_awesome_notes_app/screens/notes_list_page.dart'; // Create a page for all notes
 
 class HomePage extends StatefulWidget {
   @override
@@ -19,6 +27,7 @@ class _HomePageState extends State<HomePage> {
   final DBHelper _dbHelper = DBHelper(); // Use your DBHelper
   final AuthService _auth = AuthService();
   String? _currentUserId; // Stores the current authenticated user's ID
+  int _selectedIndex = 0; // Current index for BottomNavigationBar (Home is 0)
 
   @override
   void initState() {
@@ -45,7 +54,7 @@ class _HomePageState extends State<HomePage> {
   // Fetches recent notes and tasks from the database for the current user
   Future<void> _loadData() async {
     if (_currentUserId == null) {
-      // debugPrint('No user ID available, cannot load data.');
+      debugPrint('No user ID available, cannot load data.');
       return; // Do not load data if no user is logged in
     }
 
@@ -67,7 +76,7 @@ class _HomePageState extends State<HomePage> {
         recentNotes = notes;
         recentTasks = tasks;
       });
-      // debugPrint('Data loaded for user: $_currentUserId');
+      debugPrint('Data loaded for user: $_currentUserId');
     } catch (e) {
       debugPrint('Error loading data: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -86,10 +95,10 @@ class _HomePageState extends State<HomePage> {
       await _dbHelper.insertNote(
         Note(
           userId: userId,
-          title: 'My First Note (Image)',
-          content: 'This is a sample note with a network image.',
-          folder: 'General',
-          imageUrl: 'https://placehold.co/150x100/FFDDC1/000000?text=Note+IMG', // Example network image
+          title: 'Saya belajar abc...',
+          content: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+          folder: 'Learning',
+          imageUrl: 'https://placehold.co/150x100/FFDDC1/000000?text=ABC', // Matches image
           imageLocalPath: null,
           audioUrl: null,
           createdAt: DateTime.now().subtract(Duration(hours: 3)),
@@ -99,14 +108,12 @@ class _HomePageState extends State<HomePage> {
       await _dbHelper.insertNote(
         Note(
           userId: userId,
-          title: 'Audio Recording Idea',
-          content: 'Remember to record the meeting minutes for the new project.',
-          folder: 'Work',
-          imageUrl: null,
+          title: 'Saya belajar 123...',
+          content: '12345678910',
+          folder: 'Learning',
+          imageUrl: 'https://placehold.co/150x100/FFDDC1/000000?text=123', // Matches image
           imageLocalPath: null,
-          // IMPORTANT: Replace with a valid, accessible audio URL for testing.
-          // For local audio, you'd need to record/save it first.
-          audioUrl: 'https://www2.cs.uic.edu/~iokaz/CS342/audio/beep.wav', // Example dummy audio URL
+          audioUrl: null,
           createdAt: DateTime.now().subtract(Duration(hours: 1)),
           updatedAt: DateTime.now().subtract(Duration(hours: 1)),
         ).toMap(),
@@ -133,7 +140,7 @@ class _HomePageState extends State<HomePage> {
       await _dbHelper.insertTask(
         Task(
           userId: userId,
-          title: 'Complete Flutter Auth Integration',
+          title: 'Buy groceries',
           isCompleted: false,
           createdAt: DateTime.now().subtract(Duration(days: 3)),
           updatedAt: DateTime.now().subtract(Duration(days: 3)),
@@ -142,7 +149,7 @@ class _HomePageState extends State<HomePage> {
       await _dbHelper.insertTask(
         Task(
           userId: userId,
-          title: 'Plan new feature for Notes App',
+          title: 'Finish report',
           isCompleted: false,
           createdAt: DateTime.now().subtract(Duration(days: 2)),
           updatedAt: DateTime.now().subtract(Duration(days: 2)),
@@ -151,8 +158,8 @@ class _HomePageState extends State<HomePage> {
       await _dbHelper.insertTask(
         Task(
           userId: userId,
-          title: 'Call John about meeting',
-          isCompleted: true,
+          title: 'Call mom',
+          isCompleted: true, // Example of a completed task
           createdAt: DateTime.now().subtract(Duration(days: 1)),
           updatedAt: DateTime.now().subtract(Duration(days: 1)),
         ).toMap(),
@@ -160,7 +167,7 @@ class _HomePageState extends State<HomePage> {
       await _dbHelper.insertTask(
         Task(
           userId: userId,
-          title: 'Go for a morning run',
+          title: 'Go for a run',
           isCompleted: false,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
@@ -202,6 +209,30 @@ class _HomePageState extends State<HomePage> {
     _loadData(); // Reload data to update UI
   }
 
+  // Handles BottomNavigationBar taps
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    // Navigate to the corresponding page
+    if (index == 0) {
+      // Home page (stay on this page)
+    } else if (index == 1) {
+      // Calendar page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const CalendarTaskListPage()),
+      );
+    } else if (index == 2) {
+      // Notes page (all notes list)
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const NotesListPage()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Get the User object from the Provider tree
@@ -210,46 +241,39 @@ class _HomePageState extends State<HomePage> {
     _currentUserId = user?.uid;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF0CA), // Light yellow background
+      backgroundColor: const Color(0xFFFFF0CA), // Light yellow background from image
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        toolbarHeight: 60,
-        leadingWidth: 0, // Remove default leading padding
-        titleSpacing: 0, // Remove default title spacing
-        title: Padding(
-          padding: const EdgeInsets.only(left: 16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // Logout button
-              IconButton(
-                icon: const Icon(Icons.logout, color: Colors.black),
-                onPressed: () async {
-                  await _auth.signOut();
-                  // The Wrapper widget will automatically handle navigation back to AuthScreen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Logged out successfully!')));
-                },
-              ),
-            ],
-          ),
-        ),
+        backgroundColor: Colors.transparent, // Transparent to show background color
+        elevation: 0, // No shadow
+        toolbarHeight: 60, // Standard height
+        // To match the image, we'll place the folder and settings icons directly in actions
+        // The status bar icons (wifi, battery) are system-level and not part of AppBar directly.
         actions: [
+          // Folder Icon
           IconButton(
-            icon: const Icon(Icons.folder_outlined, color: Colors.black),
+            icon: const Icon(Icons.folder_outlined, color: Colors.black, size: 28),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                   content: Text('Navigate to All Notes/Folders page')));
-              // TODO: Implement navigation to a screen showing all notes/folders, passing _currentUserId
+              // TODO: Implement navigation to a screen showing all notes/folders
             },
           ),
+          // Settings Icon
           IconButton(
-            icon: const Icon(Icons.settings, color: Colors.black),
+            icon: const Icon(Icons.settings, color: Colors.black, size: 28),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Navigate to Settings page')));
               // TODO: Implement navigation to settings page
+            },
+          ),
+          // Logout button (optional, but good for auth flow)
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.black, size: 28),
+            onPressed: () async {
+              await _auth.signOut();
+              ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Logged out successfully!')));
             },
           ),
           const SizedBox(width: 16), // Padding on the right
@@ -371,7 +395,7 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
-                // Positioned Floating Action Button
+                // Positioned Floating Action Button (matches image)
                 Positioned(
                   bottom: 100, // Adjust based on bottom nav bar height
                   right: 20,
@@ -430,34 +454,66 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.white, // White background for the bar
         selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.grey,
+        unselectedItemColor: Colors.black, // Unselected items are also black in the image
         showSelectedLabels: true,
         showUnselectedLabels: true,
-        currentIndex: 0, // Assuming Home is the first item
-        onTap: (index) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Bottom Nav Item ${index} clicked!')));
-          // TODO: Implement navigation based on index (e.g., to Calendar or Notes list)
-        },
-        items: [
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped, // Use the new handler
+        type: BottomNavigationBarType.fixed, // Ensures all items are visible
+        items: <BottomNavigationBarItem>[
+          // Home Item (matches image style)
           BottomNavigationBarItem(
             icon: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFDDDDDD), // Light grey for selected home
+                color: _selectedIndex == 0 ? const Color(0xFFDDDDDD) : Colors.transparent, // Light grey for selected home
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Icon(Icons.home),
+              child: const Column(
+                mainAxisSize: MainAxisSize.min, // To make column compact
+                children: [
+                  Icon(Icons.home, size: 30),
+                  Text('Home', style: TextStyle(fontSize: 12)),
+                ],
+              ),
             ),
-            label: 'Home',
+            label: '', // Label is part of the column
           ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined),
-            label: 'Calendar',
+          // Calendar Item (matches image style)
+          BottomNavigationBarItem(
+            icon: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              decoration: BoxDecoration(
+                color: _selectedIndex == 1 ? const Color(0xFFDDDDDD) : Colors.transparent, // Light grey for selected calendar
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.calendar_month, size: 30), // Changed to calendar_month for better match
+                  Text('Calendar', style: TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+            label: '',
           ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.edit_note_outlined), // Or Icons.notes
-            label: 'Notes',
+          // Notes Item (matches image style)
+          BottomNavigationBarItem(
+            icon: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              decoration: BoxDecoration(
+                color: _selectedIndex == 2 ? const Color(0xFFDDDDDD) : Colors.transparent, // Light grey for selected notes
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.notes, size: 30), // Changed to notes for better match
+                  Text('Notes', style: TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+            label: '',
           ),
         ],
       ),
@@ -465,7 +521,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// Custom Widget for Note Card
+// Custom Widget for Note Card (remains mostly the same as previous response)
 class NoteCard extends StatefulWidget {
   final Note note;
 
@@ -483,15 +539,13 @@ class _NoteCardState extends State<NoteCard> {
   void initState() {
     super.initState();
     _audioPlayer = AudioPlayer();
-    // Listen for changes in player state to update UI (e.g., icon)
     _audioPlayer.onPlayerStateChanged.listen((state) {
-      if (mounted) { // Check if widget is still in the tree
+      if (mounted) {
         setState(() {
           _playerState = state;
         });
       }
     });
-    // Listen for completion to reset button
     _audioPlayer.onPlayerComplete.listen((event) {
       if (mounted) {
         setState(() {
@@ -503,11 +557,10 @@ class _NoteCardState extends State<NoteCard> {
 
   @override
   void dispose() {
-    _audioPlayer.dispose(); // Dispose the audio player to prevent memory leaks
+    _audioPlayer.dispose();
     super.dispose();
   }
 
-  // Handles playing, pausing, and resuming audio
   Future<void> _playAudio() async {
     if (widget.note.audioUrl == null) return;
 
@@ -518,12 +571,10 @@ class _NoteCardState extends State<NoteCard> {
         await _audioPlayer.resume();
       } else {
         Source audioSource;
-        // Determine if it's a local file path or a network URL
         if (widget.note.audioUrl!.startsWith('http://') ||
             widget.note.audioUrl!.startsWith('https://')) {
           audioSource = UrlSource(widget.note.audioUrl!);
         } else {
-          // Assuming local file paths are absolute and accessible
           audioSource = DeviceFileSource(widget.note.audioUrl!);
         }
         await _audioPlayer.play(audioSource);
@@ -534,7 +585,7 @@ class _NoteCardState extends State<NoteCard> {
           SnackBar(content: Text('Failed to play audio: $e')));
       if (mounted) {
         setState(() {
-          _playerState = PlayerState.stopped; // Reset state on error
+          _playerState = PlayerState.stopped;
         });
       }
     }
@@ -549,7 +600,7 @@ class _NoteCardState extends State<NoteCard> {
         // TODO: Navigate to specific note detail page using widget.note.id and widget.note.userId
       },
       child: Container(
-        width: 180, // Fixed width for horizontal scroll
+        width: 180,
         margin: const EdgeInsets.only(right: 16.0),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -559,7 +610,7 @@ class _NoteCardState extends State<NoteCard> {
               color: Colors.black.withOpacity(0.05),
               spreadRadius: 1,
               blurRadius: 5,
-              offset: const Offset(0, 3), // changes position of shadow
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -572,8 +623,8 @@ class _NoteCardState extends State<NoteCard> {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(15.0)),
                 child: widget.note.imageLocalPath != null
                     ? Image.file(
-                        File(widget.note.imageLocalPath!), // Load from local path
-                        height: 90, // Adjusted image height
+                        File(widget.note.imageLocalPath!),
+                        height: 90,
                         width: double.infinity,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
@@ -583,8 +634,8 @@ class _NoteCardState extends State<NoteCard> {
                         ),
                       )
                     : Image.network(
-                        widget.note.imageUrl!, // Load from network URL
-                        height: 90, // Adjusted image height
+                        widget.note.imageUrl!,
+                        height: 90,
                         width: double.infinity,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
@@ -610,7 +661,7 @@ class _NoteCardState extends State<NoteCard> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    widget.note.formattedDate, // Display formatted date
+                    widget.note.formattedDate,
                     style: TextStyle(
                       fontSize: 10,
                       color: Colors.grey[500],
@@ -620,7 +671,7 @@ class _NoteCardState extends State<NoteCard> {
                   // Audio Play Button (if audio exists)
                   if (widget.note.audioUrl != null)
                     SizedBox(
-                      width: double.infinity, // Make button take full width
+                      width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: _playAudio,
                         icon: Icon(
@@ -632,7 +683,7 @@ class _NoteCardState extends State<NoteCard> {
                         label: Text(
                           _playerState == PlayerState.playing
                               ? 'Pause Audio'
-                              : (_playerState == PlayerState.paused ? 'Resume Audio' : 'Play Audio'),
+                              : (_playerState == PlayerState.paused ? 'Resume' : 'Play Audio'),
                           style: const TextStyle(fontSize: 12),
                         ),
                         style: ElevatedButton.styleFrom(
@@ -655,7 +706,7 @@ class _NoteCardState extends State<NoteCard> {
   }
 }
 
-// Custom Widget for Task List Item
+// Custom Widget for Task List Item (matches image style)
 class TaskListItem extends StatelessWidget {
   final Task task;
   final ValueChanged<bool?> onChanged;
@@ -669,50 +720,66 @@ class TaskListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0), // Increased vertical padding
       child: GestureDetector(
         onTap: () {
           ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Tapped on task: ${task.title}')));
           // TODO: Navigate to task detail/edit page using task.id and task.userId
         },
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white, // White background for the task bar
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                spreadRadius: 1,
-                blurRadius: 3,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Checkbox(
-                value: task.isCompleted,
-                onChanged: onChanged, // This will trigger setState in HomePage and update DB
-                activeColor: Colors.black, // Color when checked
-                checkColor: Colors.white, // Color of the checkmark
-              ),
-              Expanded(
-                child: Text(
-                  task.title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    decoration:
-                        task.isCompleted ? TextDecoration.lineThrough : null,
-                    color: task.isCompleted ? Colors.grey[600] : Colors.black,
+        child: Row(
+          children: [
+            Checkbox(
+              value: task.isCompleted,
+              onChanged: onChanged, // This will trigger setState in HomePage and update DB
+              activeColor: Colors.pink, // Checkbox color as per image
+              checkColor: Colors.white,
+            ),
+            Expanded(
+              child: Container(
+                height: 40, // Fixed height as in image
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black, width: 1.0),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      task.title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        decoration:
+                            task.isCompleted ? TextDecoration.lineThrough : null,
+                        color: task.isCompleted ? Colors.grey[600] : Colors.black,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 16), // Padding on the right
-            ],
-          ),
+            ),
+            // Edit Icon (matches image)
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.black, size: 20),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Edit task: ${task.title}')));
+                // TODO: Handle edit task
+              },
+            ),
+            // Delete Icon (matches image)
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.pink, size: 20),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Delete task: ${task.title}')));
+                // TODO: Handle delete task
+              },
+            ),
+          ],
         ),
       ),
     );

@@ -72,7 +72,11 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
           mainAxisAlignment: MainAxisAlignment.center, // Center vertically
           children: [
-            CircleAvatar(radius: 40, child: Text("Logo")),
+            CircleAvatar(
+               radius: 70,
+               backgroundImage: AssetImage('assets/notes_logo.png'),
+               backgroundColor: Colors.transparent,
+            ),
               SizedBox(height: 20),
               Text("Welcome to Note&Go", style: TextStyle(fontSize: 24)),
               SizedBox(height: 20),

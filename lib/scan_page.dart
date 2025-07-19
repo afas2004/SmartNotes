@@ -145,7 +145,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     if (!_isCameraPermissionGranted) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Scan'),
+          title: const Text('Scan to Text'),
           centerTitle: true,
           backgroundColor: const Color(0xFFF9F9DD),
         ),

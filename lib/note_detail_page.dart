@@ -56,30 +56,42 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
 
   // Function to handle saving the note
   Future<void> _saveNote() async {
+  try {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
-      // Handle case where user is not logged in (e.g., show a snackbar)
-      print('User not logged in. Cannot save note.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to save notes')),
+      );
       return;
     }
 
     final provider = Provider.of<NotesProvider>(context, listen: false);
+    final navigator = Navigator.of(context);
+
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Note title cannot be empty')),
+      );
+      return;
+    }
 
     if (widget.isNewNote) {
       await provider.addNote(Note(
         userId: userId,
-        title: _titleController.text,
-        content: _descriptionController.text,
+        title: _titleController.text.trim(),
+        content: _descriptionController.text.trim(),
         createdAt: DateTime.now(),
-        // Add other fields if needed, e.g., folder, imageUrl, imageLocalPath
+        folder: widget.folder,
+        imageUrl: widget.imageUrl,
+        imageLocalPath: widget.imageLocalPath,
       ));
     } else {
       await provider.updateNote(
         Note(
           id: widget.noteId,
           userId: userId,
-          title: _titleController.text,
-          content: _descriptionController.text,
+          title: _titleController.text.trim(),
+          content: _descriptionController.text.trim(),
           createdAt: widget.createdAt ?? DateTime.now(),
           updatedAt: DateTime.now(),
           folder: widget.folder,
@@ -89,9 +101,14 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       );
     }
 
-    // After saving, pop the page and indicate success
-    Navigator.pop(context, true);
+    // Return true to indicate success
+    navigator.pop(true);
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to save note: ${e.toString()}')),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {

@@ -6,8 +6,7 @@ import 'package:smartnotes/models/note.dart';
 import 'package:smartnotes/models/task.dart';
 import 'package:smartnotes/new_note_page.dart';
 import 'package:smartnotes/providers/notes_provider.dart';
-import 'package:smartnotes/calendar_page.dart';
-import 'package:smartnotes/notebook_page.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:intl/intl.dart';
 import 'package:smartnotes/note_detail_page.dart';
 import 'package:smartnotes/providers/theme_provider.dart';
@@ -23,11 +22,17 @@ class _HomePageState extends State<HomePage> {
   List<Note> recentNotes = [];
   List<Task> recentTasks = [];
   final DBHelper _dbHelper = DBHelper();
+  final RefreshController _refreshController = RefreshController(initialRefresh: false);
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    // Add this listener
+  FirebaseAuth.instance.authStateChanges().listen((User? user) {
+    if (user != null && mounted) {
+      _loadData();
+    }
+  });
   }
 
   @override
@@ -54,6 +59,19 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _onRefresh() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        await Provider.of<NotesProvider>(context, listen: false).refreshAllData(userId);
+        await _loadData();
+      }
+    } catch (e) {
+      print('Refresh error: $e');
+    } finally {
+      _refreshController.refreshCompleted();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,60 +105,140 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Column( // Changed to Column to add the yellow line easily
-        children: [
-          // Top yellow line, similar to calendar_page.dart
-          Container(
-            height: 5,
-            color: Colors.yellow.shade200,
+      body: Column(
+  children: [
+    // Your yellow line
+    Container(
+      height: 5,
+      color: Colors.yellow.shade200,
+    ),
+    Expanded(
+      child: NotificationListener<OverscrollIndicatorNotification>(
+        onNotification: (notification) {
+          notification.disallowIndicator();
+          return true;
+        },
+        child: SmartRefresher(
+          controller: _refreshController,
+          onRefresh: _onRefresh,
+          physics: const ClampingScrollPhysics(), // Less bouncy alternative
+          header: ClassicHeader(
+            height: 60,
+            refreshStyle: RefreshStyle.Follow,
+            textStyle: TextStyle(
+              color: isDarkMode ? Colors.white70 : Colors.black54,
+            ),
+            // Customize colors to match your AppBar
+            outerBuilder: (child) => Container(
+              color: isDarkMode ? Colors.grey[900] : Colors.white,
+              child: child,
+            ),
           ),
-          Expanded(
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: ListView(
-                children: [
-                  Text(
-                    'Recent Notes',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (recentNotes.isEmpty)
-                    const Text('No recent notes.')
-                  else
-                    ...recentNotes.map((note) => ListTile(
-                          title: Text(note.title),
-                          subtitle: Text(note.content ?? ''),
-                        )),
-                  const SizedBox(height: 24),
-                  const Text('Recent Tasks', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  if (recentTasks.isEmpty)
-                    const Text('No recent tasks.')
-                  else
-                    ...recentTasks.map((task) => ListTile(
-                          title: Text(task.title),
-                          subtitle: task.dueDate != null
-                              ? Text('Due: ${DateFormat.yMd().format(task.dueDate!)}')
-                              : null,
-                          trailing: Icon(
-                            task.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                            color: task.isCompleted ? Colors.green : Colors.grey,
+              child: Column(
+                    children: [
+                      Text(
+                        'Recent Notes',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (recentNotes.isEmpty)
+                        Text(
+                          'No recent notes.',
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white60 : Colors.black54,
                           ),
-                        )),
-                ],
+                        )
+                      else
+                        ...recentNotes.map(
+                          (note) => ListTile(
+                            title: Text(
+                              note.title,
+                              style: TextStyle(
+                                color: isDarkMode ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            subtitle: Text(
+                              note.content ?? '',
+                              style: TextStyle(
+                                color:
+                                    isDarkMode
+                                        ? Colors.white70
+                                        : Colors.black54,
+                              ),
+                            ),
+                            onTap: () {
+                              // Add navigation to note detail if needed
+                            },
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Recent Tasks',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (recentTasks.isEmpty)
+                        Text(
+                          'No recent tasks.',
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white60 : Colors.black54,
+                          ),
+                        )
+                      else
+                        ...recentTasks.map(
+                          (task) => ListTile(
+                            title: Text(
+                              task.title,
+                              style: TextStyle(
+                                color: isDarkMode ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            subtitle:
+                                task.dueDate != null
+                                    ? Text(
+                                      'Due: ${DateFormat.yMd().format(task.dueDate!)}',
+                                      style: TextStyle(
+                                        color:
+                                            isDarkMode
+                                                ? Colors.white70
+                                                : Colors.black54,
+                                      ),
+                                    )
+                                    : null,
+                            trailing: Icon(
+                              task.isCompleted
+                                  ? Icons.check_circle
+                                  : Icons.radio_button_unchecked,
+                              color:
+                                  task.isCompleted ? Colors.green : Colors.grey,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
+    )
         ],
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'home_fab',
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => const NoteDetailPage(
@@ -150,6 +248,15 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           );
+          
+          // If result is true (meaning a note was saved), refresh the data
+          if (result == true && mounted) {
+            final userId = FirebaseAuth.instance.currentUser?.uid;
+            if (userId != null) {
+              await Provider.of<NotesProvider>(context, listen: false).refreshAllData(userId);
+              await _loadData();
+            }
+          }
         },
         backgroundColor: Colors.yellow,
         shape: RoundedRectangleBorder(

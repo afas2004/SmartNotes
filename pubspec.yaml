@@ -24,6 +24,8 @@ dependencies:
   camera: ^0.10.5+9
   google_mlkit_text_recognition: ^0.10.0
   permission_handler: ^11.0.1
+  device_info_plus: ^11.0.0
+  pull_to_refresh: ^2.0.0
 
 
 dev_dependencies:

@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart'; // Import for permissions
 import 'text_recognition_service.dart'; // Make sure this file exists in your lib folder
 import 'note_detail_page.dart'; // Correct relative import for NoteDetailPage
+import 'package:device_info_plus/device_info_plus.dart'; // Import for device info
 
 class ScanPage extends StatefulWidget {
   const ScanPage({Key? key}) : super(key: key);
@@ -51,30 +52,36 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   /// Requests camera and gallery permissions from the user.
   /// Updates the permission status and initializes the camera if granted.
   Future<void> _requestPermissions() async {
-    // Request camera permission
-    var cameraStatus = await Permission.camera.status;
-    if (!cameraStatus.isGranted) {
-      cameraStatus = await Permission.camera.request();
-    }
-    setState(() {
-      _isCameraPermissionGranted = cameraStatus.isGranted;
-    });
-
-    // Request photos permission for gallery access (Android 10+ uses MediaStore, less direct storage permission needed)
-    var photosStatus = await Permission.photos.status;
-    if (!photosStatus.isGranted) {
-      photosStatus = await Permission.photos.request();
-    }
-    setState(() {
-      _isGalleryPermissionGranted = photosStatus.isGranted;
-    });
-
-    if (_isCameraPermissionGranted) {
-      _initializeCamera();
-    } else {
-      _showPermissionDeniedMessage('Camera');
-    }
+  // Request camera permission
+  var cameraStatus = await Permission.camera.status;
+  if (!cameraStatus.isGranted) {
+    cameraStatus = await Permission.camera.request();
   }
+  
+  // Request gallery permission based on Android version
+  Permission photosPermission;
+  if (await DeviceInfoPlugin().androidInfo.then((info) => info.version.sdkInt) >= 33) {
+    photosPermission = Permission.photos;
+  } else {
+    photosPermission = Permission.storage;
+  }
+  
+  var photosStatus = await photosPermission.status;
+  if (!photosStatus.isGranted) {
+    photosStatus = await photosPermission.request();
+  }
+  
+  setState(() {
+    _isCameraPermissionGranted = cameraStatus.isGranted;
+    _isGalleryPermissionGranted = photosStatus.isGranted;
+  });
+
+  if (cameraStatus.isGranted) {
+    _initializeCamera();
+  } else {
+    _showPermissionDeniedMessage('Camera');
+  }
+}
 
   /// Initializes the camera controller.
   Future<void> _initializeCamera() async {

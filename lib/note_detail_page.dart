@@ -8,10 +8,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:smartnotes/models/note.dart'; // Ensure this path is correct for your project
-import 'package:smartnotes/providers/notes_provider.dart'; // Ensure this path is correct for your project
+import 'package:smartnotes/models/note.dart';
+import 'package:smartnotes/providers/notes_provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:pdf/widgets.dart' as pw; 
+import 'package:pdf/widgets.dart' as pw;
 
 class NoteDetailPage extends StatefulWidget {
   final String title;
@@ -44,24 +44,16 @@ class NoteDetailPage extends StatefulWidget {
 class _NoteDetailPageState extends State<NoteDetailPage> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
-  int _cursorPosition = 0;
-
-  String? _extractImagePath(String? content) {
-    if (content == null || !content.contains('[IMAGE:')) return null;
-    
-    final start = content.indexOf('[IMAGE:') + 7;
-    final end = content.indexOf(']', start);
-    return content.substring(start, end);
-  }
+  final FocusNode _textFieldFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.title);
     _descriptionController = TextEditingController(
-  text: widget.isNewNote && widget.initialText != null
-      ? widget.initialText
-      : widget.description,
+      text: widget.isNewNote && widget.initialText != null
+          ? widget.initialText
+          : widget.description,
     );
   }
 
@@ -73,63 +65,59 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     super.dispose();
   }
 
-  final FocusNode _textFieldFocusNode = FocusNode();
+  List<String> _extractImagePaths(String? content) {
+    if (content == null) return [];
+    final regex = RegExp(r'\[IMAGE:([^\]]+)\]');
+    return regex.allMatches(content).map((match) => match.group(1)!).toList();
+  }
 
-  // Function to handle saving the note
   Future<void> _saveNote() async {
-  try {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please login to save notes')),
-      );
-      if (!mounted) return;
-    }
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please login to save notes')),
+        );
+        return;
+      }
 
-    final provider = Provider.of<NotesProvider>(context, listen: false);
-    final navigator = Navigator.of(context);
+      final provider = Provider.of<NotesProvider>(context, listen: false);
+      final navigator = Navigator.of(context);
 
-    if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Note title cannot be empty')),
-      );
-      if (!mounted) return;
-    }
+      if (_titleController.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Note title cannot be empty')),
+        );
+        return;
+      }
 
-    if (widget.isNewNote) {
-      await provider.addNote(Note(
-        userId: userId!,
+      final note = Note(
+        id: widget.noteId,
+        userId: userId,
         title: _titleController.text.trim(),
         content: _descriptionController.text.trim(),
-        createdAt: DateTime.now(),
+        createdAt: widget.isNewNote ? DateTime.now() : widget.createdAt ?? DateTime.now(),
+        updatedAt: DateTime.now(),
         folder: widget.folder,
         imageUrl: widget.imageUrl,
         imageLocalPath: widget.imageLocalPath,
-      ));
-    } else {
-      await provider.updateNote(
-        Note(
-          id: widget.noteId,
-          userId: userId!,
-          title: _titleController.text.trim(),
-          content: _descriptionController.text.trim(),
-          createdAt: widget.createdAt ?? DateTime.now(),
-          updatedAt: DateTime.now(),
-          folder: widget.folder,
-          imageUrl: widget.imageUrl,
-          imageLocalPath: widget.imageLocalPath,
-        ),
       );
-    }
 
-    // Return true to indicate success
-    navigator.pop(true);
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to save note: ${e.toString()}')),
-    );
+      if (widget.isNewNote) {
+        await provider.addNote(note);
+      } else {
+        await provider.updateNote(note);
+      }
+
+      navigator.pop(true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save note: ${e.toString()}')),
+        );
+      }
+    }
   }
-}
 
   Future<void> _deleteNote() async {
     if (!widget.isNewNote && widget.noteId != null) {
@@ -151,10 +139,10 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
         ),
       );
 
-      if (shouldDelete == true) {
+      if (shouldDelete == true && mounted) {
         await Provider.of<NotesProvider>(context, listen: false)
             .deleteNote(widget.noteId!, FirebaseAuth.instance.currentUser!.uid);
-        if (mounted) Navigator.pop(context, true);
+        Navigator.pop(context, true);
       }
     }
   }
@@ -163,84 +151,159 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     
-    if (pickedFile != null) {
-      // Get current cursor position
-      final cursorPos = _descriptionController.selection.base.offset;
-      final text = _descriptionController.text;
-      
-      // Insert image marker at cursor position
-      final newText = text.substring(0, cursorPos) + 
-          '\n[IMAGE:${pickedFile.path}]\n' + 
-          text.substring(cursorPos);
-      
-      _descriptionController.text = newText;
-      // Move cursor after the inserted image
-      _descriptionController.selection = TextSelection.collapsed(
-        offset: cursorPos + '\n[IMAGE:${pickedFile.path}]\n'.length,
+    if (pickedFile != null && mounted) {
+      final cursorPos = _descriptionController.selection.base.offset.clamp(
+        0, 
+        _descriptionController.text.length
       );
+      
+      final newText = _descriptionController.text.substring(0, cursorPos) + 
+          '\n[IMAGE:${pickedFile.path}]\n' + 
+          _descriptionController.text.substring(cursorPos);
+      
+      setState(() {
+        _descriptionController.text = newText;
+        _descriptionController.selection = TextSelection.collapsed(
+          offset: cursorPos + '\n[IMAGE:${pickedFile.path}]\n'.length,
+        );
+      });
     }
   }
-  
+
   Widget _buildImagePreview(String imagePath) {
-    return Padding(
-      padding: EdgeInsets.only(top: 16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.file(
-          File(imagePath),
-          fit: BoxFit.cover,
-          width: double.infinity,
+  return Padding(
+    padding: const EdgeInsets.only(top: 16),
+    child: ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: 400,
+      ),
+      child: Image.file(
+        File(imagePath),
+        fit: BoxFit.contain, // Changed from BoxFit.cover to BoxFit.contain
+        width: double.infinity,
+        errorBuilder: (context, error, stackTrace) => Container(
           height: 200,
-          errorBuilder: (context, error, stackTrace) => Container(
-            height: 200,
-            color: Colors.grey[200],
-            child: Center(
-              child: Icon(Icons.broken_image, color: Colors.grey),
-            ),
+          color: Theme.of(context).colorScheme.surfaceVariant,
+          child: Center(
+            child: Icon(Icons.broken_image, 
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildNoteContent(String content) {
-  final parts = content.split(RegExp(r'(\[IMAGE:[^\]]+\])'));
-  
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: parts.map((part) {
-      if (part.startsWith('[IMAGE:')) {
-        final path = part.substring(7, part.length - 1);
-        return _buildImagePreview(path);
-      }
-      return Text(part);
-    }).toList(),
+    ),
   );
 }
 
-  @override
-  Widget build(BuildContext context) {
-  final imagePath = _extractImagePath(_descriptionController.text);
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black), // Simple back arrow as per image
-          onPressed: () {
-            Navigator.pop(context); // Go back to the previous page
+
+
+  Future<void> _exportNote() async {
+    try {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Generating PDF...')),
+      );
+
+      final pdf = pw.Document();
+      pdf.addPage(
+        pw.Page(
+          build: (pw.Context context) {
+            return pw.Padding(
+              padding: const pw.EdgeInsets.all(20),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    _titleController.text,
+                    style: pw.TextStyle(
+                      fontSize: 24,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 20),
+                  pw.Text(
+                    _descriptionController.text,
+                    style: const pw.TextStyle(fontSize: 16),
+                  ),
+                ],
+              ),
+            );
           },
         ),
-        title: Text( // Static "Create Note" as per the new image
+      );
+
+      final bytes = await pdf.save();
+      await Printing.sharePdf(
+        bytes: bytes,
+        filename: 'Note_${DateTime.now().millisecondsSinceEpoch}.pdf',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareNote() async {
+    try {
+      final content = '''
+${_titleController.text}
+
+${_descriptionController.text.replaceAll('[IMAGE:', '\n[Image Attachment]\n')}
+''';
+
+      final files = <XFile>[];
+      if (widget.imageUrl != null) {
+        if (widget.imageUrl!.startsWith('http')) {
+          final response = await get(Uri.parse(widget.imageUrl!));
+          final tempDir = await getTemporaryDirectory();
+          final file = File('${tempDir.path}/shared_image.jpg');
+          await file.writeAsBytes(response.bodyBytes);
+          files.add(XFile(file.path));
+        } else {
+          files.add(XFile(widget.imageUrl!));
+        }
+      }
+
+      await Share.shareXFiles(
+        files,
+        text: content,
+        subject: 'Shared Note: ${_titleController.text}',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sharing failed: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final imagePaths = _extractImagePaths(_descriptionController.text);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Scaffold(
+      backgroundColor: colorScheme.background,
+      appBar: AppBar(
+        backgroundColor: colorScheme.surface,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
           widget.isNewNote ? 'Create Note' : 'Edit Note',
-          style: const TextStyle(
-            color: Colors.black,
+          style: TextStyle(
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
-        centerTitle: false, // Align title to the left as per image
+        centerTitle: false,
         actions: [
           if (!widget.isNewNote)
             IconButton(
@@ -248,7 +311,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
               onPressed: _deleteNote,
             ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
+            icon: Icon(Icons.more_vert, color: colorScheme.onSurface),
             onSelected: (value) {
               switch (value) {
                 case 'save':
@@ -287,70 +350,69 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title Field
                   Container(
-                    color: Colors.yellow.shade200,
+                    color: colorScheme.primaryContainer,
                     padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                     child: TextField(
                       controller: _titleController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'TITLE',
+                        hintStyle: TextStyle(color: colorScheme.onPrimaryContainer.withOpacity(0.6)),
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                       ),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
-                        color: Colors.black,
+                        color: colorScheme.onPrimaryContainer,
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // Description Field
                   TextField(
                     controller: _descriptionController,
+                    focusNode: _textFieldFocusNode,
                     enableInteractiveSelection: true,
                     keyboardType: TextInputType.multiline,
                     textInputAction: TextInputAction.newline,
                     maxLines: null,
                     minLines: 1,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Description "I like turtles"',
+                      hintStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.6)),
                       border: InputBorder.none,
                       isDense: true,
                       contentPadding: EdgeInsets.zero,
                     ),
-                    style: const TextStyle(fontSize: 16),
-                    onChanged: (text) {
-                      // Track cursor position
-                      _cursorPosition = _descriptionController.selection.base.offset;
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: colorScheme.onSurface,
+                    ),
+                    onChanged: (text) => setState(() {}),
+                    // This will hide the image tags in the text field
+                    buildCounter: (context, 
+                        {required currentLength, required isFocused, maxLength}) {
+                      final displayText = _descriptionController.text
+                        .replaceAll(RegExp(r'\[IMAGE:[^\]]+\]'), '');
+                      return Text(
+                        '${displayText.length} characters',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      );
                     },
                   ),
-                  // Display any images in the note
-                  if (imagePath != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16.0),
-                      child: _buildLocalImagePreview(imagePath),
-                    ),
-
-                  // Display network image if URL exists
+                  ...imagePaths.map((path) => _buildImagePreview(path)).toList(),
                   if (widget.imageUrl != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16.0),
-                      child: _buildNetworkImagePreview(widget.imageUrl!),
-                    ),
+                    _buildNetworkImagePreview(widget.imageUrl!),
                 ],
               ),
             ),
           ),
-          // Bottom Buttons
           Padding(
             padding: const EdgeInsets.only(bottom: 30.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                // Add Photo Button
                 _buildIconButton(
                   icon: Icons.add_photo_alternate,
                   label: 'ADD PHOTO',
@@ -360,12 +422,10 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                   icon: Icons.keyboard_voice,
                   label: 'VOICE INPUT',
                   onPressed: () {
-                    // Just focuses the text field to show keyboard microphone
                     FocusScope.of(context).requestFocus(_textFieldFocusNode);
-                    // For iOS, you might want to show a hint
                     if (Theme.of(context).platform == TargetPlatform.iOS) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Tap the microphone on your keyboard'))
+                        const SnackBar(content: Text('Tap the microphone on your keyboard'))
                       );
                     }
                   },
@@ -377,171 +437,67 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _saveNote,
-        backgroundColor: Colors.yellow,
-        child: const Icon(Icons.save, color: Colors.black),
-      ),
-    );
-  }
-
-  Widget _buildLocalImagePreview(String imagePath) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10.0),
-      child: Image.file(
-        File(imagePath),
-        fit: BoxFit.cover,
-        height: 200,
-        width: double.infinity,
-        errorBuilder: (context, error, stackTrace) => _buildErrorPlaceholder(),
+        backgroundColor: colorScheme.primary,
+        child: Icon(Icons.save, color: colorScheme.onPrimary),
       ),
     );
   }
 
   Widget _buildNetworkImagePreview(String imageUrl) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10.0),
+  return Padding(
+    padding: const EdgeInsets.only(top: 16),
+    child: ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: 400,
+      ),
       child: Image.network(
         imageUrl,
-        fit: BoxFit.cover,
-        height: 200,
+        fit: BoxFit.contain, // Changed from BoxFit.cover to BoxFit.contain
         width: double.infinity,
-        errorBuilder: (context, error, stackTrace) => _buildErrorPlaceholder(),
+        errorBuilder: (context, error, stackTrace) => Container(
+          height: 200,
+          color: Theme.of(context).colorScheme.surfaceVariant,
+          child: Center(
+            child: Icon(Icons.broken_image, 
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+        ),
       ),
-    );
-  }
-
-  Widget _buildErrorPlaceholder() {
-    return Container(
-      height: 200,
-      color: Colors.grey.shade200,
-      child: Center(
-        child: Icon(Icons.broken_image, color: Colors.grey),
-      ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildIconButton({
     required IconData icon,
     required String label,
     required VoidCallback onPressed,
-    bool isActive = false,
   }) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: isActive ? Colors.yellow : Colors.black,
+              color: theme.colorScheme.onSurface,
               width: 2,
             ),
           ),
           child: IconButton(
-            icon: Icon(icon, color: isActive ? Colors.yellow : Colors.black, size: 30),
+            icon: Icon(icon, color: theme.colorScheme.onSurface, size: 30),
             onPressed: onPressed,
           ),
         ),
         const SizedBox(height: 8),
-        Text(label, style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: isActive ? Colors.yellow : Colors.black,
-        )),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
       ],
     );
   }
-
-  Future<void> _exportNote() async {
-  try {
-    // Show loading indicator
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Generating PDF...')),
-    );
-
-    // Create PDF document
-    final pdf = pw.Document();
-
-    // Add a page to the PDF (with corrected page format)
-    pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) {
-          return pw.Padding(
-            padding: const pw.EdgeInsets.all(20),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  _titleController.text,
-                  style: pw.TextStyle(
-                    fontSize: 24,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-                pw.SizedBox(height: 20),
-                pw.Text(
-                  _descriptionController.text,
-                  style: const pw.TextStyle(fontSize: 16),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-
-    // Save and share the PDF
-    final bytes = await pdf.save();
-    await Printing.sharePdf(
-      bytes: bytes,
-      filename: 'Note_${DateTime.now().millisecondsSinceEpoch}.pdf',
-    );
-
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Export failed: ${e.toString()}')),
-    );
-    debugPrint('PDF export error: $e');
-  }
 }
-
-  Future<void> _shareNote() async {
-    try {
-      // Prepare content for sharing
-      final content = '''
-  ${_titleController.text}
-
-  ${_descriptionController.text.replaceAll('[IMAGE:', '\n[Image Attachment]\n')}
-  ''';
-
-      // Share text + image if available
-      final files = <XFile>[];
-      if (widget.imageUrl != null) {
-        if (widget.imageUrl!.startsWith('http')) {
-          final response = await get(Uri.parse(widget.imageUrl!));
-          final tempDir = await getTemporaryDirectory();
-          final file = File('${tempDir.path}/shared_image.jpg');
-          await file.writeAsBytes(response.bodyBytes);
-          files.add(XFile(file.path));
-        } else {
-          files.add(XFile(widget.imageUrl!));
-        }
-      }
-
-      // Execute share
-      await Share.shareXFiles(
-        files,
-        text: content,
-        subject: 'Shared Note: ${_titleController.text}',
-      );
-
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sharing failed: ${e.toString()}')),
-        );
-      }
-    }
-  }
-}
-

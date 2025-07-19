@@ -194,8 +194,6 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   );
 }
 
-
-
   Future<void> _exportNote() async {
     try {
       if (!mounted) return;
@@ -351,14 +349,13 @@ ${_descriptionController.text.replaceAll('[IMAGE:', '\n[Image Attachment]\n')}
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: double.infinity, // expands to the sides
-                    color: Colors.yellow, // sets background color to yellow
+                    color: colorScheme.primaryContainer,
                     padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                     child: TextField(
                       controller: _titleController,
                       decoration: InputDecoration(
                         hintText: 'TITLE',
-                        hintStyle: TextStyle(color: Colors.black.withOpacity(0.6)),
+                        hintStyle: TextStyle(color: colorScheme.onPrimaryContainer.withOpacity(0.6)),
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
@@ -366,7 +363,7 @@ ${_descriptionController.text.replaceAll('[IMAGE:', '\n[Image Attachment]\n')}
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
-                        color: Colors.black,
+                        color: colorScheme.onPrimaryContainer,
                       ),
                     ),
                   ),
@@ -418,6 +415,7 @@ ${_descriptionController.text.replaceAll('[IMAGE:', '\n[Image Attachment]\n')}
                   icon: Icons.add_photo_alternate,
                   label: 'ADD PHOTO',
                   onPressed: _addPhoto,
+                  color: colorScheme.primaryContainer, // Use theme color
                 ),
                 _buildIconButton(
                   icon: Icons.keyboard_voice,
@@ -430,16 +428,18 @@ ${_descriptionController.text.replaceAll('[IMAGE:', '\n[Image Attachment]\n')}
                       );
                     }
                   },
-                )
+                  color: colorScheme.primaryContainer, // Use theme color
+                ),
+                _buildIconButton(
+                  icon: Icons.save,
+                  label: 'SAVE',
+                  onPressed: _saveNote,
+                  color: Theme.of(context).colorScheme.primary, // Use theme color
+                ),
               ],
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _saveNote,
-        backgroundColor: colorScheme.primary,
-        child: Icon(Icons.save, color: colorScheme.onPrimary),
       ),
     );
   }
@@ -471,7 +471,7 @@ ${_descriptionController.text.replaceAll('[IMAGE:', '\n[Image Attachment]\n')}
   Widget _buildIconButton({
     required IconData icon,
     required String label,
-    required VoidCallback onPressed,
+    required VoidCallback onPressed, required Color color,
   }) {
     final theme = Theme.of(context);
     return Column(

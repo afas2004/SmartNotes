@@ -11,8 +11,6 @@ import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:intl/intl.dart';
 import 'package:smartnotes/note_detail_page.dart';
 import 'package:smartnotes/providers/theme_provider.dart';
-import 'package:smartnotes/calendar_page.dart';
-import 'package:smartnotes/notebook_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -86,16 +84,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildNoteCard(Note note, BuildContext context, bool isDarkMode) {
-    // Extract image path from content if exists
-    String? imagePath;
-    if (note.content != null && note.content!.contains('[IMAGE:')) {
-      final regex = RegExp(r'\[IMAGE:([^\]]+)\]');
-      final match = regex.firstMatch(note.content!);
-      if (match != null) {
-        imagePath = match.group(1);
-      }
-    }
-
+    String? imagePath = _extractImagePath(note.content);
+    
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -103,112 +93,98 @@ class _HomePageState extends State<HomePage> {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          Navigator.pushNamed(
+          Navigator.push(
             context,
-            '/note_detail',
-            arguments: {
-              'noteId': note.id,
-              'title': note.title,
-              'description': note.content ?? '',
-              'isNewNote': false,
-              'createdAt': note.createdAt,
-              'folder': note.folder,
-              'imageUrl': note.imageUrl,
-              'imageLocalPath': note.imageLocalPath,
-            },
+            MaterialPageRoute(
+              builder: (context) => NoteDetailPage(
+                noteId: note.id,
+                title: note.title,
+                description: note.content ?? '',
+                isNewNote: false,
+                createdAt: note.createdAt,
+                folder: note.folder,
+                imageUrl: note.imageUrl,
+                imageLocalPath: note.imageLocalPath,
+              ),
+            ),
           );
         },
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: 100,
-            maxHeight: 220,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Show image from either imageUrl, imageLocalPath, or embedded in content
-                if (note.imageUrl != null || note.imageLocalPath != null || imagePath != null)
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxHeight: 100,
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: note.imageUrl != null
-                          ? Image.network(
-                              note.imageUrl!,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => _buildImageErrorPlaceholder(),
-                            )
-                          : (note.imageLocalPath != null
-                              ? Image.file(
-                                  File(note.imageLocalPath!),
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => _buildImageErrorPlaceholder(),
-                                )
-                              : (imagePath != null
-                                  ? Image.file(
-                                      File(imagePath),
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) => _buildImageErrorPlaceholder(),
-                                    )
-                                  : Container())),
-                    ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (imagePath != null || note.imageUrl != null || note.imageLocalPath != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: note.imageUrl != null
+                        ? Image.network(
+                            note.imageUrl!,
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          )
+                        : note.imageLocalPath != null
+                            ? Image.file(
+                                File(note.imageLocalPath!),
+                                height: 120,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              )
+                            : imagePath != null
+                                ? Image.file(
+                                    File(imagePath),
+                                    height: 120,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Container(),
                   ),
-                const SizedBox(height: 8),
-                Text(
-                  note.title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: isDarkMode ? Colors.white : Colors.black,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                if (note.createdAt != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      DateFormat('MMM dd, yyyy').format(note.createdAt!),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDarkMode ? Colors.white60 : Colors.black54,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                Flexible(
+              Text(
+                note.title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (note.createdAt != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    note.content?.replaceAll(RegExp(r'\[IMAGE:[^\]]+\]'), '') ?? '',
+                    DateFormat('MMM dd, yyyy').format(note.createdAt!),
                     style: TextStyle(
-                      color: isDarkMode ? Colors.white70 : Colors.black87,
+                      fontSize: 12,
+                      color: isDarkMode ? Colors.white60 : Colors.black54,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ],
-            ),
+              const SizedBox(height: 8),
+              Text(
+                note.content?.replaceAll(RegExp(r'\[IMAGE:[^\]]+\]'), '') ?? '',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildImageErrorPlaceholder() {
-    return Container(
-      height: 100,
-      width: double.infinity,
-      color: Colors.grey[200],
-      child: const Icon(Icons.broken_image, color: Colors.grey),
-    );
+  String? _extractImagePath(String? content) {
+    if (content == null || !content.contains('[IMAGE:')) return null;
+    final regex = RegExp(r'\[IMAGE:([^\]]+)\]');
+    final match = regex.firstMatch(content);
+    return match?.group(1);
   }
 
   Widget _buildTaskCard(Task task, BuildContext context, bool isDarkMode) {
@@ -277,15 +253,6 @@ class _HomePageState extends State<HomePage> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.folder_outlined, color: isDarkMode ? Colors.white : Colors.black),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const NotesPage()),
-              );
-            },
-          ),
-          IconButton(
             icon: Icon(Icons.settings, color: isDarkMode ? Colors.white : Colors.black),
             onPressed: () {
               Navigator.pushNamed(context, '/settings');
@@ -293,105 +260,77 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Container(
-            height: 5,
-            color: Colors.yellow.shade200,
+      body: SmartRefresher(
+        controller: _refreshController,
+        onRefresh: _onRefresh,
+        header: ClassicHeader(
+          height: 60,
+          refreshStyle: RefreshStyle.Follow,
+          textStyle: TextStyle(
+            color: isDarkMode ? Colors.white70 : Colors.black54,
           ),
-          Expanded(
-            child: NotificationListener<OverscrollIndicatorNotification>(
-              onNotification: (notification) {
-                notification.disallowIndicator();
-                return true;
-              },
-              child: SmartRefresher(
-                controller: _refreshController,
-                onRefresh: _onRefresh,
-                physics: const ClampingScrollPhysics(),
-                header: ClassicHeader(
-                  height: 60,
-                  refreshStyle: RefreshStyle.Follow,
-                  textStyle: TextStyle(
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                  outerBuilder: (child) => Container(
-                    color: isDarkMode ? Colors.grey[900] : Colors.white,
-                    child: child,
-                  ),
-                ),
-                child: SingleChildScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Recent Notes',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: isDarkMode ? Colors.white : Colors.black,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        if (recentNotes.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            child: Text(
-                              'No recent notes',
-                              style: TextStyle(
-                                color: isDarkMode ? Colors.white60 : Colors.black54,
-                              ),
-                            ),
-                          )
-                        else
-                          Column(
-                            children: recentNotes
-                                .map((note) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 16),
-                                      child: _buildNoteCard(note, context, isDarkMode),
-                                    ))
-                                .toList(),
-                          ),
-                        const SizedBox(height: 24),
-                        Text(
-                          'Recent Tasks',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: isDarkMode ? Colors.white : Colors.black,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        if (recentTasks.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            child: Text(
-                              'No recent tasks',
-                              style: TextStyle(
-                                color: isDarkMode ? Colors.white60 : Colors.black54,
-                              ),
-                            ),
-                          )
-                        else
-                          Column(
-                            children: recentTasks
-                                .map((task) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 16),
-                                      child: _buildTaskCard(task, context, isDarkMode),
-                                    ))
-                                .toList(),
-                          ),
-                      ],
-                    ),
-                  ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top yellow line
+              Container(
+                height: 5,
+                color: Colors.yellow.shade200,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Recent Notes',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white : Colors.black,
                 ),
               ),
-            ),
+              const SizedBox(height: 16),
+              if (recentNotes.isEmpty)
+                Text(
+                  'No recent notes.',
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white60 : Colors.black54,
+                  ),
+                )
+              else
+                ...recentNotes.map(
+                  (note) => Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _buildNoteCard(note, context, isDarkMode),
+                  ),
+                ),
+              const SizedBox(height: 24),
+              Text(
+                'Recent Tasks',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (recentTasks.isEmpty)
+                Text(
+                  'No recent tasks.',
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white60 : Colors.black54,
+                  ),
+                )
+              else
+                ...recentTasks.map(
+                  (task) => Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _buildTaskCard(task, context, isDarkMode),
+                  ),
+                ),
+            ],
           ),
-        ],
+        ),
       ),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -412,21 +351,9 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 8),
           if (_isFabOpen)
             FloatingActionButton(
-              heroTag: 'task_fab',
+              heroTag: 'note_fab',
               mini: true,
               onPressed: () {
-                setState(() => _isFabOpen = false);
-                // Handle new task action
-              },
-              backgroundColor: Colors.green,
-              child: const Icon(Icons.task, color: Colors.white),
-            ),
-          if (_isFabOpen)
-            const SizedBox(height: 8),
-          FloatingActionButton(
-            heroTag: 'main_fab',
-            onPressed: () {
-              if (_isFabOpen) {
                 setState(() => _isFabOpen = false);
                 Navigator.pushNamed(
                   context,
@@ -437,9 +364,14 @@ class _HomePageState extends State<HomePage> {
                     'isNewNote': true,
                   },
                 );
-              } else {
-                setState(() => _isFabOpen = true);
-              }
+              },
+              backgroundColor: Colors.yellow,
+              child: const Icon(Icons.note_add, color: Colors.black),
+            ),
+          FloatingActionButton(
+            heroTag: 'main_fab',
+            onPressed: () {
+              setState(() => _isFabOpen = !_isFabOpen);
             },
             backgroundColor: Colors.yellow,
             shape: RoundedRectangleBorder(
@@ -454,7 +386,6 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-  
     );
   }
 

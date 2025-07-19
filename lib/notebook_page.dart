@@ -193,13 +193,6 @@ class _NotesPageState extends State<NotesPage> {
         centerTitle: false,
         actions: [
           IconButton(
-            icon: Icon(Icons.folder_outlined, color: isDarkMode ? Colors.white : Colors.black),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const NotesPage()),
-            ),
-          ),
-          IconButton(
             icon: Icon(Icons.settings, color: isDarkMode ? Colors.white : Colors.black),
             onPressed: () {
               Navigator.pushNamed(context, '/settings');

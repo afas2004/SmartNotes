@@ -78,7 +78,7 @@ class _LoginPageState extends State<LoginPage> {
                backgroundColor: Colors.transparent,
             ),
               SizedBox(height: 20),
-              Text("Welcome to Note&Go", style: TextStyle(fontSize: 24)),
+              Text("Welcome to SmartNotes", style: TextStyle(fontSize: 24)),
               SizedBox(height: 20),
             TextField(
               controller: _emailCtrl,

@@ -1,15 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart'; // For date formatting
-
-// Ensure these imports match your project structure
+import 'package:intl/intl.dart';
 import 'package:smartnotes/notebook_page.dart';
 import 'package:smartnotes/providers/theme_provider.dart';
 import 'homepage.dart';
 import 'package:smartnotes/models/task.dart';
 import 'package:smartnotes/providers/notes_provider.dart';
-// import 'package:smartnotes/services/auth_service.dart'; // AuthService is not directly used here for task logic
 
 class CalendarTaskListPage extends StatefulWidget {
   const CalendarTaskListPage({super.key});
@@ -20,17 +17,14 @@ class CalendarTaskListPage extends StatefulWidget {
 
 class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
   List<Task> _tasksForSelectedDay = [];
-
   late DateTime _focusedDay;
-  DateTime? _selectedDay; // Nullable for no day selected initially
+  DateTime? _selectedDay;
 
   @override
   void initState() {
     super.initState();
-    _focusedDay = DateTime.now(); // Initialize with the current month
-    _selectedDay = _focusedDay; // Select the current day by default
-
-    // Load tasks for the initially selected day after the first frame is rendered
+    _focusedDay = DateTime.now();
+    _selectedDay = _focusedDay;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadTasksForSelectedDay();
     });
@@ -59,24 +53,29 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
     });
   }
 
-  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) async {
+  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     if (!mounted) return;
     setState(() {
       _selectedDay = selectedDay;
       _focusedDay = focusedDay;
     });
-    _loadTasksForSelectedDay(); // Reload tasks for the newly selected day
+    _loadTasksForSelectedDay();
+  }
 
-    // Show the add task dialog immediately after selecting a day
-     _showAddTaskDialog(context);
-    _loadTasksForSelectedDay(); // Reload tasks after dialog closes
+  void _goToToday() {
+    if (!mounted) return;
+    setState(() {
+      _focusedDay = DateTime.now();
+      _selectedDay = _focusedDay;
+    });
+    _loadTasksForSelectedDay();
   }
 
   void _goToPreviousMonth() {
     if (!mounted) return;
     setState(() {
       _focusedDay = DateTime(_focusedDay.year, _focusedDay.month - 1, 1);
-      _selectedDay = null; // Clear selected day when changing month
+      _selectedDay = null;
     });
   }
 
@@ -84,7 +83,7 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
     if (!mounted) return;
     setState(() {
       _focusedDay = DateTime(_focusedDay.year, _focusedDay.month + 1, 1);
-      _selectedDay = null; // Clear selected day when changing month
+      _selectedDay = null;
     });
   }
 
@@ -95,7 +94,7 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
     final DateTime firstDayOfMonth = DateTime(_focusedDay.year, _focusedDay.month, 1);
     final DateTime lastDayOfMonth = DateTime(_focusedDay.year, _focusedDay.month + 1, 0);
     final int daysInMonth = lastDayOfMonth.day;
-    final int firstWeekday = firstDayOfMonth.weekday % 7; // Sunday=0, Monday=1, ..., Saturday=6
+    final int firstWeekday = firstDayOfMonth.weekday % 7;
 
     List<int?> daysGrid = [];
     for (int i = 0; i < firstWeekday; i++) {
@@ -128,13 +127,17 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
         centerTitle: true,
         actions: [
           IconButton(
+            icon: Icon(Icons.today, color: isDarkMode ? Colors.grey[200]! : Colors.black),
+            onPressed: _goToToday,
+          ),
+          IconButton(
             icon: Icon(Icons.arrow_forward_ios, color: isDarkMode ? Colors.grey[200]! : Colors.black),
             onPressed: _goToNextMonth,
           ),
           IconButton(
             icon: Icon(Icons.settings, color: isDarkMode ? Colors.grey[200]! : Colors.black),
             onPressed: () {
-              Navigator.pushNamed(context, '/settings'); // If you have a settings route
+              Navigator.pushNamed(context, '/settings');
             },
           ),
         ],
@@ -152,7 +155,6 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Day of the week headers
                     Container(
                       decoration: BoxDecoration(
                         border: Border.all(
@@ -180,7 +182,6 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
                         ],
                       ),
                     ),
-                    // Calendar Grid
                     Container(
                       decoration: BoxDecoration(
                         border: Border.all(
@@ -248,7 +249,6 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
                       ),
                     ),
                     const SizedBox(height: 30),
-                    // Tasks Section
                     const Text(
                       'Tasks',
                       style: TextStyle(
@@ -257,7 +257,6 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
                       ),
                     ),
                     const SizedBox(height: 15),
-                    // Task List Items
                     if (_tasksForSelectedDay.isEmpty)
                       const Text('No tasks for this day.')
                     else
@@ -271,7 +270,24 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
           ),
         ],
       ),
-      // FloatingActionButton and floatingActionButtonLocation are removed
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          if (_selectedDay != null) {
+            _showAddTaskDialog(context);
+          } else {
+            setState(() {
+              _selectedDay = DateTime.now();
+            });
+            _showAddTaskDialog(context);
+          }
+        },
+        backgroundColor: Colors.yellow,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15.0),
+        ),
+        child: const Icon(Icons.task, color: Colors.black, size: 35),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
@@ -318,10 +334,7 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
           ),
           IconButton(
             icon: Icon(Icons.edit, color: isDarkMode ? Colors.grey[200]! : Colors.black, size: 20),
-            onPressed: () {
-              // TODO: Implement task editing dialog/page
-              print('Edit task: ${task.title}');
-            },
+            onPressed: () => _showEditTaskDialog(context, task),
           ),
           IconButton(
             icon: const Icon(Icons.delete, color: Colors.pink, size: 20),
@@ -370,8 +383,8 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
                     }
                   },
                   child: Text(
-                  'Due: ${DateFormat.yMd().format(dueDate ?? DateTime.now())}',
-                ),
+                    'Due: ${DateFormat.yMd().format(dueDate ?? DateTime.now())}',
+                  ),
                 );
               },
             ),
@@ -395,11 +408,78 @@ class _CalendarTaskListPageState extends State<CalendarTaskListPage> {
                     dueDate: dueDate,
                     isCompleted: false,
                   ));
+                  _loadTasksForSelectedDay();
                 }
               }
               Navigator.pop(context);
             },
             child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditTaskDialog(BuildContext context, Task task) {
+    final textController = TextEditingController(text: task.title);
+    DateTime? dueDate = task.dueDate;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Task'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: textController,
+              decoration: const InputDecoration(labelText: 'Task Title'),
+            ),
+            const SizedBox(height: 16),
+            StatefulBuilder(
+              builder: (BuildContext context, StateSetter setStateDialog) {
+                return TextButton(
+                  onPressed: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: dueDate ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (date != null) {
+                      setStateDialog(() {
+                        dueDate = date;
+                      });
+                    }
+                  },
+                  child: Text(
+                    'Due: ${DateFormat.yMd().format(dueDate ?? DateTime.now())}',
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (textController.text.isNotEmpty) {
+                final provider = Provider.of<NotesProvider>(context, listen: false);
+                await provider.updateTask(
+                  task.copyWith(
+                    title: textController.text,
+                    dueDate: dueDate,
+                  ),
+                );
+                _loadTasksForSelectedDay();
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
           ),
         ],
       ),

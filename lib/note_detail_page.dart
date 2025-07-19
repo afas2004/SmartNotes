@@ -351,13 +351,14 @@ ${_descriptionController.text.replaceAll('[IMAGE:', '\n[Image Attachment]\n')}
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    color: colorScheme.primaryContainer,
+                    width: double.infinity, // expands to the sides
+                    color: Colors.yellow, // sets background color to yellow
                     padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                     child: TextField(
                       controller: _titleController,
                       decoration: InputDecoration(
                         hintText: 'TITLE',
-                        hintStyle: TextStyle(color: colorScheme.onPrimaryContainer.withOpacity(0.6)),
+                        hintStyle: TextStyle(color: Colors.black.withOpacity(0.6)),
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
@@ -365,7 +366,7 @@ ${_descriptionController.text.replaceAll('[IMAGE:', '\n[Image Attachment]\n')}
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
-                        color: colorScheme.onPrimaryContainer,
+                        color: Colors.black,
                       ),
                     ),
                   ),

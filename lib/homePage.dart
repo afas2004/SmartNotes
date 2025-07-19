@@ -1,17 +1,18 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:smartnotes/db_helper.dart';
 import 'package:smartnotes/models/note.dart';
 import 'package:smartnotes/models/task.dart';
-import 'package:smartnotes/new_note_page.dart';
 import 'package:smartnotes/providers/notes_provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:intl/intl.dart';
 import 'package:smartnotes/note_detail_page.dart';
 import 'package:smartnotes/providers/theme_provider.dart';
-import 'package:smartnotes/calendar_page.dart'; // Ensure calendar_page.dart is imported
-import 'package:smartnotes/notebook_page.dart'; // Ensure notebook_page.dart is imported
+import 'package:smartnotes/calendar_page.dart';
+import 'package:smartnotes/notebook_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,9 +24,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   List<Note> recentNotes = [];
   List<Task> recentTasks = [];
-  int _selectedIndex = 0;
   final DBHelper _dbHelper = DBHelper();
   final RefreshController _refreshController = RefreshController(initialRefresh: false);
+  bool _isFabOpen = false;
 
   @override
   void initState() {
@@ -75,30 +76,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
-      );
-    } else if (index == 1) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const CalendarTaskListPage()),
-      );
-    } else if (index == 2) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const NotesPage()), // Navigate to NotesPage
-      );
-    }
-  }
-
-  // Helper function to truncate text by word limit
   String _truncateText(String text, int wordLimit) {
     if (text.isEmpty) return '';
     List<String> words = text.split(' ');
@@ -106,6 +83,183 @@ class _HomePageState extends State<HomePage> {
       return words.sublist(0, wordLimit).join(' ') + '...';
     }
     return text;
+  }
+
+  Widget _buildNoteCard(Note note, BuildContext context, bool isDarkMode) {
+    // Extract image path from content if exists
+    String? imagePath;
+    if (note.content != null && note.content!.contains('[IMAGE:')) {
+      final regex = RegExp(r'\[IMAGE:([^\]]+)\]');
+      final match = regex.firstMatch(note.content!);
+      if (match != null) {
+        imagePath = match.group(1);
+      }
+    }
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: isDarkMode ? Colors.grey[800] : Colors.white,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          Navigator.pushNamed(
+            context,
+            '/note_detail',
+            arguments: {
+              'noteId': note.id,
+              'title': note.title,
+              'description': note.content ?? '',
+              'isNewNote': false,
+              'createdAt': note.createdAt,
+              'folder': note.folder,
+              'imageUrl': note.imageUrl,
+              'imageLocalPath': note.imageLocalPath,
+            },
+          );
+        },
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: 100,
+            maxHeight: 220,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Show image from either imageUrl, imageLocalPath, or embedded in content
+                if (note.imageUrl != null || note.imageLocalPath != null || imagePath != null)
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: 100,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: note.imageUrl != null
+                          ? Image.network(
+                              note.imageUrl!,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => _buildImageErrorPlaceholder(),
+                            )
+                          : (note.imageLocalPath != null
+                              ? Image.file(
+                                  File(note.imageLocalPath!),
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => _buildImageErrorPlaceholder(),
+                                )
+                              : (imagePath != null
+                                  ? Image.file(
+                                      File(imagePath),
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => _buildImageErrorPlaceholder(),
+                                    )
+                                  : Container())),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Text(
+                  note.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (note.createdAt != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      DateFormat('MMM dd, yyyy').format(note.createdAt!),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDarkMode ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: Text(
+                    note.content?.replaceAll(RegExp(r'\[IMAGE:[^\]]+\]'), '') ?? '',
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white70 : Colors.black87,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageErrorPlaceholder() {
+    return Container(
+      height: 100,
+      width: double.infinity,
+      color: Colors.grey[200],
+      child: const Icon(Icons.broken_image, color: Colors.grey),
+    );
+  }
+
+  Widget _buildTaskCard(Task task, BuildContext context, bool isDarkMode) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: isDarkMode ? Colors.grey[800] : Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(
+              task.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+              color: task.isCompleted ? Colors.green : Colors.grey,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                      decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (task.dueDate != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Due: ${DateFormat('MMM dd, yyyy').format(task.dueDate!)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: task.isCompleted
+                              ? (isDarkMode ? Colors.green : Colors.green[700])
+                              : (isDarkMode ? Colors.white60 : Colors.black54),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -127,7 +281,7 @@ class _HomePageState extends State<HomePage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => NewNotePage()),
+                MaterialPageRoute(builder: (context) => const NotesPage()),
               );
             },
           ),
@@ -141,7 +295,6 @@ class _HomePageState extends State<HomePage> {
       ),
       body: Column(
         children: [
-          // Top yellow line
           Container(
             height: 5,
             color: Colors.yellow.shade200,
@@ -172,7 +325,7 @@ class _HomePageState extends State<HomePage> {
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start, // Align to start
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Recent Notes',
@@ -182,81 +335,25 @@ class _HomePageState extends State<HomePage> {
                             color: isDarkMode ? Colors.white : Colors.black,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 16),
                         if (recentNotes.isEmpty)
-                          Text(
-                            'No recent notes.',
-                            style: TextStyle(
-                              color: isDarkMode ? Colors.white60 : Colors.black54,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Text(
+                              'No recent notes',
+                              style: TextStyle(
+                                color: isDarkMode ? Colors.white60 : Colors.black54,
+                              ),
                             ),
                           )
                         else
-                          ...recentNotes.map(
-                            (note) => Card( // Wrap notes in Card
-                              color: isDarkMode ? Colors.grey[800] : Colors.white,
-                              margin: const EdgeInsets.symmetric(vertical: 8.0),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      note.title,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                        color: isDarkMode ? Colors.white : Colors.black,
-                                      ),
-                                    ),
-                                    if (note.createdAt != null) // Display creation date
-                                      Text(
-                                        'Created: ${DateFormat.yMd().format(note.createdAt!)}',
-                                        style: TextStyle(
-                                          color: isDarkMode ? Colors.white70 : Colors.black54,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _truncateText(note.content ?? '', 15), // Truncate note content
-                                      style: TextStyle(
-                                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: () {
-                                        // Navigate to NoteDetailPage to view/edit this note
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => NoteDetailPage(
-                                              noteId: note.id,
-                                              title: note.title,
-                                              description: note.content ?? '',
-                                              isNewNote: false,
-                                              createdAt: note.createdAt,
-                                              folder: note.folder,
-                                              imageUrl: note.imageUrl,
-                                              imageLocalPath: note.imageLocalPath,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      child: Align(
-                                        alignment: Alignment.bottomRight,
-                                        child: Text(
-                                          'Read More',
-                                          style: TextStyle(
-                                            color: Colors.blue.shade300,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                          Column(
+                            children: recentNotes
+                                .map((note) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 16),
+                                      child: _buildNoteCard(note, context, isDarkMode),
+                                    ))
+                                .toList(),
                           ),
                         const SizedBox(height: 24),
                         Text(
@@ -267,54 +364,25 @@ class _HomePageState extends State<HomePage> {
                             color: isDarkMode ? Colors.white : Colors.black,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 16),
                         if (recentTasks.isEmpty)
-                          Text(
-                            'No recent tasks.',
-                            style: TextStyle(
-                              color: isDarkMode ? Colors.white60 : Colors.black54,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Text(
+                              'No recent tasks',
+                              style: TextStyle(
+                                color: isDarkMode ? Colors.white60 : Colors.black54,
+                              ),
                             ),
                           )
                         else
-                          ...recentTasks.map(
-                            (task) => Card( // Wrap tasks in Card
-                              color: isDarkMode ? Colors.grey[800] : Colors.white,
-                              margin: const EdgeInsets.symmetric(vertical: 8.0),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            _truncateText(task.title, 10), // Truncate task title
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                              color: isDarkMode ? Colors.white : Colors.black,
-                                              decoration: task.isCompleted ? TextDecoration.lineThrough : null,
-                                            ),
-                                          ),
-                                          if (task.dueDate != null)
-                                            Text(
-                                              'Due: ${DateFormat.yMd().format(task.dueDate!)}',
-                                              style: TextStyle(
-                                                color: isDarkMode ? Colors.white70 : Colors.black54,
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                    Icon(
-                                      task.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                                      color: task.isCompleted ? Colors.green : Colors.grey,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                          Column(
+                            children: recentTasks
+                                .map((task) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 16),
+                                      child: _buildTaskCard(task, context, isDarkMode),
+                                    ))
+                                .toList(),
                           ),
                       ],
                     ),
@@ -325,35 +393,68 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'home_fab',
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const NoteDetailPage(
-                title: '',
-                description: '',
-                isNewNote: true,
-              ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (_isFabOpen)
+            FloatingActionButton(
+              heroTag: 'ocr_fab',
+              mini: true,
+              onPressed: () {
+                setState(() => _isFabOpen = false);
+                Navigator.pushNamed(context, '/scan');
+              },
+              backgroundColor: Colors.blue,
+              child: const Icon(Icons.document_scanner, color: Colors.white),
             ),
-          );
-
-          if (result == true && mounted) {
-            final userId = FirebaseAuth.instance.currentUser?.uid;
-            if (userId != null) {
-              await Provider.of<NotesProvider>(context, listen: false).refreshAllData(userId);
-              await _loadData();
-            }
-          }
-        },
-        backgroundColor: Colors.yellow,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15.0),
-        ),
-        child: const Icon(Icons.add, color: Colors.black, size: 35),
+          if (_isFabOpen)
+            const SizedBox(height: 8),
+          if (_isFabOpen)
+            FloatingActionButton(
+              heroTag: 'task_fab',
+              mini: true,
+              onPressed: () {
+                setState(() => _isFabOpen = false);
+                // Handle new task action
+              },
+              backgroundColor: Colors.green,
+              child: const Icon(Icons.task, color: Colors.white),
+            ),
+          if (_isFabOpen)
+            const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: 'main_fab',
+            onPressed: () {
+              if (_isFabOpen) {
+                setState(() => _isFabOpen = false);
+                Navigator.pushNamed(
+                  context,
+                  '/note_detail',
+                  arguments: {
+                    'title': '',
+                    'description': '',
+                    'isNewNote': true,
+                  },
+                );
+              } else {
+                setState(() => _isFabOpen = true);
+              }
+            },
+            backgroundColor: Colors.yellow,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15.0),
+            ),
+            child: AnimatedRotation(
+              turns: _isFabOpen ? 0.125 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: const Icon(Icons.add, color: Colors.black, size: 35),
+            ),
+          ),
+        ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+  
     );
   }
 

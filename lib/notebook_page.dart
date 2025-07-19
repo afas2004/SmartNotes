@@ -1,17 +1,16 @@
 import 'dart:io';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smartnotes/models/note.dart';
-import 'package:smartnotes/new_note_page.dart';
 import 'package:smartnotes/providers/notes_provider.dart';
 import 'package:smartnotes/providers/theme_provider.dart';
-import 'note_detail_page.dart'; // Adjust 'your_app_name'
-import 'calendar_page.dart'; // Import CalendarTaskListPage
-import 'homepage.dart'; // Import HomePage
+import 'package:smartnotes/note_detail_page.dart';
+import 'package:smartnotes/calendar_page.dart';
+import 'package:smartnotes/homepage.dart';
+import 'package:intl/intl.dart'; // Add this import for DateFormat
 
-class NotesPage extends StatefulWidget { 
+class NotesPage extends StatefulWidget {
   const NotesPage({super.key});
 
   @override
@@ -19,8 +18,6 @@ class NotesPage extends StatefulWidget {
 }
 
 class _NotesPageState extends State<NotesPage> {
-
-  // Update _NotesPageState class
   @override
   void initState() {
     super.initState();
@@ -33,6 +30,146 @@ class _NotesPageState extends State<NotesPage> {
 
     final provider = Provider.of<NotesProvider>(context, listen: false);
     await provider.loadNotes(userId);
+  }
+
+  Widget _buildNoteCard(Note note, BuildContext context, bool isDarkMode) {
+    // Extract the first image path if it exists in the content
+    String? imagePath;
+    if (note.content != null && note.content!.contains('[IMAGE:')) {
+      final regex = RegExp(r'\[IMAGE:([^\]]+)\]');
+      final match = regex.firstMatch(note.content!);
+      if (match != null) {
+        imagePath = match.group(1);
+      }
+    }
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: isDarkMode ? Colors.grey[800] : Colors.white,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () async {
+          final shouldRefresh = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => NoteDetailPage(
+                title: note.title,
+                description: note.content ?? '',
+                isNewNote: false,
+                noteId: note.id,
+                createdAt: note.createdAt,
+                folder: note.folder,
+                imageUrl: note.imageUrl,
+                imageLocalPath: note.imageLocalPath,
+              ),
+            ),
+          );
+          if (shouldRefresh == true && mounted) {
+            _loadNotes();
+          }
+        },
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: 100,
+            maxHeight: 220, // Adjust this value based on your needs
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Image section
+                if (note.imageUrl != null || note.imageLocalPath != null || imagePath != null)
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: 100,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: note.imageUrl != null
+                          ? Image.network(
+                              note.imageUrl!,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => _buildImageErrorPlaceholder(),
+                            )
+                          : (note.imageLocalPath != null
+                              ? Image.file(
+                                  File(note.imageLocalPath!),
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => _buildImageErrorPlaceholder(),
+                                )
+                              : (imagePath != null
+                                  ? Image.file(
+                                      File(imagePath),
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => _buildImageErrorPlaceholder(),
+                                    )
+                                  : Container())),
+                    ),
+                  ),
+
+                // Title and content section
+                Flexible(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
+                      Text(
+                        note.title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (note.createdAt != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            DateFormat('MMM dd, yyyy').format(note.createdAt!),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDarkMode ? Colors.white60 : Colors.black54,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 8),
+                      Flexible(
+                        child: Text(
+                          note.content?.replaceAll(RegExp(r'\[IMAGE:[^\]]+\]'), '') ?? '',
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white70 : Colors.black87,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageErrorPlaceholder() {
+    return Container(
+      height: 100,
+      width: double.infinity,
+      color: Colors.grey[200],
+      child: const Icon(Icons.broken_image, color: Colors.grey),
+    );
   }
 
   @override
@@ -56,10 +193,11 @@ class _NotesPageState extends State<NotesPage> {
         centerTitle: false,
         actions: [
           IconButton(
-            icon: Icon(Icons.folder_outlined, 
-              color: isDarkMode ? Colors.white : Colors.black),
-            onPressed: () => Navigator.push(context, 
-              MaterialPageRoute(builder: (context) => NewNotePage())),
+            icon: Icon(Icons.folder_outlined, color: isDarkMode ? Colors.white : Colors.black),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const NotesPage()),
+            ),
           ),
           IconButton(
             icon: Icon(Icons.settings, color: isDarkMode ? Colors.white : Colors.black),
@@ -71,7 +209,6 @@ class _NotesPageState extends State<NotesPage> {
       ),
       body: Column(
         children: [
-          // Top yellow line
           Container(
             height: 5,
             color: Colors.yellow.shade200,
@@ -79,41 +216,31 @@ class _NotesPageState extends State<NotesPage> {
           Expanded(
             child: Consumer<NotesProvider>(
               builder: (context, provider, child) {
+                // Remove isLoading check since we're not using it
                 if (provider.notes.isEmpty) {
-                  return const Center(child: Text('No notes available.'));
+                  return Center(
+                    child: Text(
+                      'No notes available',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                  );
                 }
 
-                // Group notes into pairs for the grid
-                final notePairs = [];
-                for (var i = 0; i < provider.notes.length; i += 2) {
-                  if (i + 1 < provider.notes.length) {
-                    notePairs.add([provider.notes[i], provider.notes[i + 1]]);
-                  } else {
-                    notePairs.add([provider.notes[i]]);
-                  }
-                }
-
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children:
-                        notePairs.map((pair) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16.0),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: _buildNoteCard(context, pair[0]),
-                                ),
-                                if (pair.length > 1) const SizedBox(width: 16),
-                                if (pair.length > 1)
-                                  Expanded(
-                                    child: _buildNoteCard(context, pair[1]),
-                                  ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: GridView.builder(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.8,
+                    ),
+                    itemCount: provider.notes.length,
+                    itemBuilder: (context, index) {
+                      return _buildNoteCard(provider.notes[index], context, isDarkMode);
+                    },
                   ),
                 );
               },
@@ -146,87 +273,9 @@ class _NotesPageState extends State<NotesPage> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15.0),
         ),
-        child: const Icon(Icons.add, color: Colors.black, size: 35),
+        child: const Icon(Icons.edit, color: Colors.black, size: 30),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-
-    );
-  }
-
-  // Update _buildNoteCard to use Note model
-  Widget _buildNoteCard(BuildContext context, Note note) {
-    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
-    return Card(
-      color: isDarkMode ? Colors.grey[800] : Colors.white,
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(15.0),
-        onTap: () async {
-  final shouldRefresh = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => NoteDetailPage(
-                  title: note.title,
-                  description: note.content ?? '',
-                  isNewNote: false,
-                  noteId: note.id, // Pass the note ID
-                  createdAt: note.createdAt, // Pass creation date
-                  folder: note.folder, // Pass if using folders
-                  imageUrl: note.imageUrl, // Pass if using images
-                  imageLocalPath: note.imageLocalPath, // Pass if using local images
-                ),
-              ),
-            );
-            if (shouldRefresh == true) {
-              _loadNotes();
-            }
-          },
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (note.imageUrl != null || note.imageLocalPath != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10.0),
-                  child:
-                      note.imageUrl != null
-                          ? Image.network(
-                            note.imageUrl!,
-                            height: 100,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          )
-                          : Image.file(
-                            File(note.imageLocalPath!),
-                            height: 100,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                ),
-              const SizedBox(height: 10),
-              Text(
-                note.title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: isDarkMode ? Colors.white : Colors.black,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 5),
-              Text(
-                note.content ?? '',
-                style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[600],  fontSize: 12),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

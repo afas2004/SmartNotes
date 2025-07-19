@@ -66,11 +66,19 @@ class SmartNotesApp extends StatelessWidget {
             '/homepage': (_) => HomePage(),
             '/notebook': (_) => NotesPage(),
             '/scan': (_) => const ScanPage(),
-            '/note_detail': (_) => NoteDetailPage(
-              title: '',
-              description: '',
-              isNewNote: true,
-            ),
+            '/note_detail': (context) {
+              final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+              return NoteDetailPage(
+                title: args['title'],
+                description: args['description'],
+                isNewNote: args['isNewNote'],
+                noteId: args['noteId'],
+                createdAt: args['createdAt'],
+                folder: args['folder'],
+                imageUrl: args['imageUrl'],
+                imageLocalPath: args['imageLocalPath'],
+              );
+            },
             '/settings': (_) => SettingsPage(),
           },
           home: StreamBuilder(

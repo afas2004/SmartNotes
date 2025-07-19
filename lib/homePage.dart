@@ -114,7 +114,7 @@ class _HomePageState extends State<HomePage> {
     final isDarkMode = themeProvider.isDarkMode;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
         title: Text(
@@ -354,51 +354,6 @@ class _HomePageState extends State<HomePage> {
         child: const Icon(Icons.add, color: Colors.black, size: 35),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: BottomNavigationBar(
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                color: _selectedIndex == 0 ? Colors.grey.shade300 : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.home, size: 30),
-                  Text('Home', style: TextStyle(fontSize: 12)),
-                ],
-              ),
-            ),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Column(
-              children: [
-                const Icon(Icons.calendar_month, size: 30),
-                const Text('Calendar', style: TextStyle(fontSize: 12)),
-              ],
-            ),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Column(
-              children: [
-                const Icon(Icons.notes, size: 30),
-                const Text('Notes', style: TextStyle(fontSize: 12)),
-              ],
-            ),
-            label: '',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.black,
-        onTap: _onItemTapped,
-        backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
-        type: BottomNavigationBarType.fixed,
-      ),
     );
   }
 

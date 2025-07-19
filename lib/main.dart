@@ -16,7 +16,6 @@ import 'package:smartnotes/calendar_page.dart';
 import 'package:smartnotes/new_note_page.dart';
 import 'package:smartnotes/note_detail_page.dart';
 import 'package:smartnotes/notebook_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 final authService = AuthService();
 
@@ -29,101 +28,69 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => NotesProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => NotesProvider()),
       ],
       child: const SmartNotesApp(),
     ),
   );
 }
 
-class SmartNotesApp extends StatefulWidget {
+class SmartNotesApp extends StatelessWidget {
   const SmartNotesApp({super.key});
 
   @override
-  State<SmartNotesApp> createState() => _SmartNotesAppState();
-}
-
-class _SmartNotesAppState extends State<SmartNotesApp> {
-  bool _isDarkMode = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadThemePreference();
-  }
-
-  Future<void> _loadThemePreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _isDarkMode = prefs.getBool('isDarkMode') ?? false;
-    });
-  }
-
-  void _toggleTheme(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _isDarkMode = value;
-    });
-    await prefs.setBool('isDarkMode', value);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'SmartNotes',
-      theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-        brightness: Brightness.light,
-      ),
-      darkTheme: ThemeData(
-        primarySwatch: Colors.indigo,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-        brightness: Brightness.dark,
-      ),
-      themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'SmartNotes',
+          theme: ThemeData(
+            primarySwatch: Colors.indigo,
+            visualDensity: VisualDensity.adaptivePlatformDensity,
+            brightness: Brightness.light,
+          ),
+          darkTheme: ThemeData(
+            primarySwatch: Colors.indigo,
+            visualDensity: VisualDensity.adaptivePlatformDensity,
+            brightness: Brightness.dark,
+          ),
+          themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          routes: {
+            LoginPage.routeName: (_) => const LoginPage(),
+            RegisterPage.routeName: (_) => const RegisterPage(),
+            '/new_note': (_) => const NewNotePage(),
+            '/calendar': (_) => CalendarTaskListPage(),
+            '/profile': (_) => const ProfilePage(),
+            '/homepage': (_) => HomePage(),
+            '/notebook': (_) => NotesPage(),
+            '/scan': (_) => const ScanPage(),
+            '/note_detail': (_) => NoteDetailPage(
+              title: '',
+              description: '',
+              isNewNote: true,
+            ),
+            '/settings': (_) => SettingsPage(),
+          },
+          home: StreamBuilder(
+            stream: authService.authStateChanges,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
 
-      // Named navigation routes
-      routes: {
-        LoginPage.routeName: (_) => const LoginPage(),
-        RegisterPage.routeName: (_) => const RegisterPage(),
-        '/new_note': (_) => const NewNotePage(),
-        '/calendar': (_) => CalendarTaskListPage(),
-        '/profile': (_) => const ProfilePage(),
-        '/homepage': (_) => HomePage(),
-        '/notebook': (_) => NotesPage(),
-        '/scan': (_) => const ScanPage(),
-        '/note_detail': (_) => NoteDetailPage(
-          title: '',
-          description: '',
-          isNewNote: true,
-        ),
-        '/settings': (_) => SettingsPage(
-          isDarkMode: _isDarkMode,
-          onThemeChanged: _toggleTheme,
-        ),
+              if (!snapshot.hasData) {
+                return const LoginPage();
+              }
+
+              return MainLayout();
+            },
+          ),
+        );
       },
-
-      // Auth stream decides initial screen
-      home: StreamBuilder(
-        stream: authService.authStateChanges,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-
-          if (!snapshot.hasData) {
-            return const LoginPage();
-          }
-
-          return MainLayout();
-        },
-      ),
     );
   }
 }

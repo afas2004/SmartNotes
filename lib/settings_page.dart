@@ -5,15 +5,7 @@ import 'package:smartnotes/providers/theme_provider.dart';
 import 'package:smartnotes/screens/login_page.dart';
 
 class SettingsPage extends StatelessWidget {
-  final bool isDarkMode;
-  final ValueChanged<bool> onThemeChanged;
-
-  const SettingsPage({
-    super.key,
-    required this.isDarkMode,
-    required this.onThemeChanged,
-  });
-
+  const SettingsPage({super.key});
   void _handleLogout(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
     Navigator.of(context).pushNamedAndRemoveUntil(
@@ -24,10 +16,10 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final user = FirebaseAuth.instance.currentUser;
     final tilePadding = const EdgeInsets.symmetric(horizontal: 12.0);
     final sectionTitleStyle = Theme.of(context).textTheme.titleMedium;
+
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -52,13 +44,17 @@ class SettingsPage extends StatelessWidget {
 
           // 🎨 Appearance Section
           Text('Appearance', style: sectionTitleStyle),
-          SwitchListTile(
-            title: const Text('Dark Mode'),
-            value: themeProvider.isDarkMode,
-            onChanged: (value) => themeProvider.toggleTheme(value),
-            secondary: const Icon(Icons.dark_mode),
+          // In your build method, replace JUST the SwitchListTile with:
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return SwitchListTile(
+                title: const Text('Dark Mode'),
+                value: themeProvider.isDarkMode,
+                onChanged: (value) => themeProvider.toggleTheme(value),
+                secondary: const Icon(Icons.dark_mode),
+              );
+            },
           ),
-
           const SizedBox(height: 24),
 
           // ☁️ Monetization & Premium

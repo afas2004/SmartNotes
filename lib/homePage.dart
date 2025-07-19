@@ -10,6 +10,8 @@ import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:intl/intl.dart';
 import 'package:smartnotes/note_detail_page.dart';
 import 'package:smartnotes/providers/theme_provider.dart';
+import 'package:smartnotes/calendar_page.dart'; // Ensure calendar_page.dart is imported
+import 'package:smartnotes/notebook_page.dart'; // Ensure notebook_page.dart is imported
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,18 +23,18 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   List<Note> recentNotes = [];
   List<Task> recentTasks = [];
+  int _selectedIndex = 0;
   final DBHelper _dbHelper = DBHelper();
   final RefreshController _refreshController = RefreshController(initialRefresh: false);
 
   @override
   void initState() {
     super.initState();
-    // Add this listener
-  FirebaseAuth.instance.authStateChanges().listen((User? user) {
-    if (user != null && mounted) {
-      _loadData();
-    }
-  });
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (user != null && mounted) {
+        _loadData();
+      }
+    });
   }
 
   @override
@@ -73,6 +75,39 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+    } else if (index == 1) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const CalendarTaskListPage()),
+      );
+    } else if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const NotesPage()), // Navigate to NotesPage
+      );
+    }
+  }
+
+  // Helper function to truncate text by word limit
+  String _truncateText(String text, int wordLimit) {
+    if (text.isEmpty) return '';
+    List<String> words = text.split(' ');
+    if (words.length > wordLimit) {
+      return words.sublist(0, wordLimit).join(' ') + '...';
+    }
+    return text;
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -82,13 +117,13 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
       appBar: AppBar(
         backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
-        title: Text('Smart Notes',
-        style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+        title: Text(
+          'Smart Notes',
+          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.folder_outlined,
-            color: isDarkMode ? Colors.white : Colors.black),
+            icon: Icon(Icons.folder_outlined, color: isDarkMode ? Colors.white : Colors.black),
             onPressed: () {
               Navigator.push(
                 context,
@@ -97,8 +132,7 @@ class _HomePageState extends State<HomePage> {
             },
           ),
           IconButton(
-            icon: Icon(Icons.settings,
-            color: isDarkMode ? Colors.white : Colors.black),
+            icon: Icon(Icons.settings, color: isDarkMode ? Colors.white : Colors.black),
             onPressed: () {
               Navigator.pushNamed(context, '/settings');
             },
@@ -106,133 +140,189 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       body: Column(
-  children: [
-    // Your yellow line
-    Container(
-      height: 5,
-      color: Colors.yellow.shade200,
-    ),
-    Expanded(
-      child: NotificationListener<OverscrollIndicatorNotification>(
-        onNotification: (notification) {
-          notification.disallowIndicator();
-          return true;
-        },
-        child: SmartRefresher(
-          controller: _refreshController,
-          onRefresh: _onRefresh,
-          physics: const ClampingScrollPhysics(), // Less bouncy alternative
-          header: ClassicHeader(
-            height: 60,
-            refreshStyle: RefreshStyle.Follow,
-            textStyle: TextStyle(
-              color: isDarkMode ? Colors.white70 : Colors.black54,
-            ),
-            // Customize colors to match your AppBar
-            outerBuilder: (child) => Container(
-              color: isDarkMode ? Colors.grey[900] : Colors.white,
-              child: child,
-            ),
+        children: [
+          // Top yellow line
+          Container(
+            height: 5,
+            color: Colors.yellow.shade200,
           ),
-          child: SingleChildScrollView(
-            physics: const NeverScrollableScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                    children: [
-                      Text(
-                        'Recent Notes',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: isDarkMode ? Colors.white : Colors.black,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (recentNotes.isEmpty)
+          Expanded(
+            child: NotificationListener<OverscrollIndicatorNotification>(
+              onNotification: (notification) {
+                notification.disallowIndicator();
+                return true;
+              },
+              child: SmartRefresher(
+                controller: _refreshController,
+                onRefresh: _onRefresh,
+                physics: const ClampingScrollPhysics(),
+                header: ClassicHeader(
+                  height: 60,
+                  refreshStyle: RefreshStyle.Follow,
+                  textStyle: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                  outerBuilder: (child) => Container(
+                    color: isDarkMode ? Colors.grey[900] : Colors.white,
+                    child: child,
+                  ),
+                ),
+                child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start, // Align to start
+                      children: [
                         Text(
-                          'No recent notes.',
+                          'Recent Notes',
                           style: TextStyle(
-                            color: isDarkMode ? Colors.white60 : Colors.black54,
-                          ),
-                        )
-                      else
-                        ...recentNotes.map(
-                          (note) => ListTile(
-                            title: Text(
-                              note.title,
-                              style: TextStyle(
-                                color: isDarkMode ? Colors.white : Colors.black,
-                              ),
-                            ),
-                            subtitle: Text(
-                              note.content ?? '',
-                              style: TextStyle(
-                                color:
-                                    isDarkMode
-                                        ? Colors.white70
-                                        : Colors.black54,
-                              ),
-                            ),
-                            onTap: () {
-                              // Add navigation to note detail if needed
-                            },
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Colors.black,
                           ),
                         ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Recent Tasks',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: isDarkMode ? Colors.white : Colors.black,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (recentTasks.isEmpty)
-                        Text(
-                          'No recent tasks.',
-                          style: TextStyle(
-                            color: isDarkMode ? Colors.white60 : Colors.black54,
-                          ),
-                        )
-                      else
-                        ...recentTasks.map(
-                          (task) => ListTile(
-                            title: Text(
-                              task.title,
-                              style: TextStyle(
-                                color: isDarkMode ? Colors.white : Colors.black,
-                              ),
+                        const SizedBox(height: 8),
+                        if (recentNotes.isEmpty)
+                          Text(
+                            'No recent notes.',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white60 : Colors.black54,
                             ),
-                            subtitle:
-                                task.dueDate != null
-                                    ? Text(
-                                      'Due: ${DateFormat.yMd().format(task.dueDate!)}',
+                          )
+                        else
+                          ...recentNotes.map(
+                            (note) => Card( // Wrap notes in Card
+                              color: isDarkMode ? Colors.grey[800] : Colors.white,
+                              margin: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      note.title,
                                       style: TextStyle(
-                                        color:
-                                            isDarkMode
-                                                ? Colors.white70
-                                                : Colors.black54,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                        color: isDarkMode ? Colors.white : Colors.black,
                                       ),
-                                    )
-                                    : null,
-                            trailing: Icon(
-                              task.isCompleted
-                                  ? Icons.check_circle
-                                  : Icons.radio_button_unchecked,
-                              color:
-                                  task.isCompleted ? Colors.green : Colors.grey,
+                                    ),
+                                    if (note.createdAt != null) // Display creation date
+                                      Text(
+                                        'Created: ${DateFormat.yMd().format(note.createdAt!)}',
+                                        style: TextStyle(
+                                          color: isDarkMode ? Colors.white70 : Colors.black54,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _truncateText(note.content ?? '', 15), // Truncate note content
+                                      style: TextStyle(
+                                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        // Navigate to NoteDetailPage to view/edit this note
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => NoteDetailPage(
+                                              noteId: note.id,
+                                              title: note.title,
+                                              description: note.content ?? '',
+                                              isNewNote: false,
+                                              createdAt: note.createdAt,
+                                              folder: note.folder,
+                                              imageUrl: note.imageUrl,
+                                              imageLocalPath: note.imageLocalPath,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: Align(
+                                        alignment: Alignment.bottomRight,
+                                        child: Text(
+                                          'Read More',
+                                          style: TextStyle(
+                                            color: Colors.blue.shade300,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Recent Tasks',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
                         ),
-                    ],
+                        const SizedBox(height: 8),
+                        if (recentTasks.isEmpty)
+                          Text(
+                            'No recent tasks.',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white60 : Colors.black54,
+                            ),
+                          )
+                        else
+                          ...recentTasks.map(
+                            (task) => Card( // Wrap tasks in Card
+                              color: isDarkMode ? Colors.grey[800] : Colors.white,
+                              margin: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _truncateText(task.title, 10), // Truncate task title
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: isDarkMode ? Colors.white : Colors.black,
+                                              decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                                            ),
+                                          ),
+                                          if (task.dueDate != null)
+                                            Text(
+                                              'Due: ${DateFormat.yMd().format(task.dueDate!)}',
+                                              style: TextStyle(
+                                                color: isDarkMode ? Colors.white70 : Colors.black54,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      task.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+                                      color: task.isCompleted ? Colors.green : Colors.grey,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-    )
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -248,8 +338,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           );
-          
-          // If result is true (meaning a note was saved), refresh the data
+
           if (result == true && mounted) {
             final userId = FirebaseAuth.instance.currentUser?.uid;
             if (userId != null) {
@@ -265,11 +354,57 @@ class _HomePageState extends State<HomePage> {
         child: const Icon(Icons.add, color: Colors.black, size: 35),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      bottomNavigationBar: BottomNavigationBar(
+        items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              decoration: BoxDecoration(
+                color: _selectedIndex == 0 ? Colors.grey.shade300 : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.home, size: 30),
+                  Text('Home', style: TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Column(
+              children: [
+                const Icon(Icons.calendar_month, size: 30),
+                const Text('Calendar', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Column(
+              children: [
+                const Icon(Icons.notes, size: 30),
+                const Text('Notes', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+            label: '',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.black,
+        unselectedItemColor: Colors.black,
+        onTap: _onItemTapped,
+        backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
+        type: BottomNavigationBarType.fixed,
+      ),
     );
   }
 
   @override
   void dispose() {
+    _refreshController.dispose();
     super.dispose();
   }
 }

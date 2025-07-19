@@ -55,8 +55,8 @@ class DBHelper {
       CREATE TABLE note_tags (
         note_id INTEGER,
         tag_id INTEGER,
-        FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE, -- Added ON DELETE CASCADE
-        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,   -- Added ON DELETE CASCADE
+        FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE, 
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,  
         PRIMARY KEY (note_id, tag_id)
       )
     ''');
@@ -69,7 +69,7 @@ class DBHelper {
         isCompleted INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT,
-        due_date TEXT  // Add this line
+        due_date TEXT  
       )
     ''');
 

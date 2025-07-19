@@ -119,9 +119,6 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           IconButton(
             icon: const Icon(Icons.more_vert, color: Colors.black), // More options icon as per image
             onPressed: () {
-              // TODO: Implement a dropdown menu or dialog for more options,
-              // including a "Save" option that calls _saveNote().
-              // For now, we'll call save directly for demonstration.
               _saveNote(); // Calling save directly for now.
             },
           ),
@@ -208,7 +205,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                       child: IconButton(
                         icon: const Icon(Icons.add_photo_alternate, color: Colors.black, size: 30),
                         onPressed: () {
-                          // Handle add photo
+                          Navigator.pushNamed(context, '/scan'); // Navigate to add photo page
                           print('Add Photo button pressed');
                         },
                       ),
